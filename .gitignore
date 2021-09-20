@@ -1,0 +1,7 @@
+boot
+gnu-efi
+ovmf
+*.o
+*.d
+*.elf
+*.EFI
