@@ -1,0 +1,8 @@
+GNU-EFI Hello World
+===================
+
+This is a simple "hello world" program using exclusively GNU-EFI's headers and
+relocator.
+
+Works with clang and GCC, no need for any specialised toolchain or set up.
+Just type "make run" to build and run the hello world program in QEMU.

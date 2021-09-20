@@ -40,7 +40,7 @@ INTERNALCFLAGS :=        \
 
 CFILES      := $(shell find ./src -type f -name '*.c')
 OBJ         := $(CFILES:.c=.o)
-HEADER_DEPS := $(CFILES:.c:.d)
+HEADER_DEPS := $(CFILES:.c=.d)
 
 .PHONY: all
 all: HELLO.EFI
