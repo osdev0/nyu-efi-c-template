@@ -73,7 +73,7 @@ ovmf:
 	cd ovmf && curl -o OVMF-X64.zip https://efi.akeo.ie/OVMF/OVMF-X64.zip && unzip OVMF-X64.zip
 
 .PHONY: run
-run: ovmf
+run: all ovmf
 	mkdir -p boot/EFI/BOOT
 	cp HELLO.EFI boot/EFI/BOOT/BOOTX64.EFI
 	qemu-system-x86_64 -M q35 -drive file=fat:rw:boot -bios ovmf/OVMF.fd
