@@ -1,5 +1,5 @@
 boot
-gnu-efi
+reduced-gnu-efi
 ovmf
 *.o
 *.d
