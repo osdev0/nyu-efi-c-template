@@ -1,8 +1,9 @@
-GNU-EFI Hello World
-===================
+reduced-gnu-efi Hello World
+===========================
 
-This is a simple "hello world" program using exclusively GNU-EFI's headers and
-relocator.
+This is a simple "hello world" program using reduced-gnu-efi.
+For information about reduced-gnu-efi, see:
+https://github.com/limine-bootloader/reduced-gnu-efi
 
 Works with clang and GCC, no need for any specialised toolchain or set up.
 Just type "make run" to build and run the hello world program in QEMU.
