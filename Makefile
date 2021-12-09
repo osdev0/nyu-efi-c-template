@@ -77,6 +77,7 @@ run: all ovmf
 	mkdir -p boot/EFI/BOOT
 	cp HELLO.EFI boot/EFI/BOOT/BOOTX64.EFI
 	qemu-system-x86_64 -M q35 -drive file=fat:rw:boot -bios ovmf/OVMF.fd
+	rm -rf boot
 
 .PHONY: clean
 clean:
@@ -84,4 +85,4 @@ clean:
 
 .PHONY: distclean
 distclean: clean
-	rm -rf reduced-gnu-efi
+	rm -rf reduced-gnu-efi ovmf
