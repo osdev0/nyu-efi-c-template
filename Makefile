@@ -58,7 +58,7 @@ reduced-gnu-efi/gnuefi/crt0-efi-x86_64.o reduced-gnu-efi/gnuefi/libgnuefi.a: red
 	$(MAKE) -C reduced-gnu-efi/gnuefi CC="$(CC)" AR="$(AR)" ARCH=x86_64
 
 HELLO.EFI: hello.elf
-	$(OBJCOPY) -j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel -j .rela -j .rel.* -j .rela.* -j .reloc --target efi-app-x86_64 --subsystem=10 $< $@
+	$(OBJCOPY) -j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel -j .rela -j .rel.* -j .rela.* -j .reloc --target efi-app-x86_64 $< $@
 
 hello.elf: reduced-gnu-efi/gnuefi/crt0-efi-x86_64.o reduced-gnu-efi/gnuefi/libgnuefi.a $(OBJ)
 	$(LD) $^ $(LDFLAGS) $(INTERNALLDFLAGS) -o $@
