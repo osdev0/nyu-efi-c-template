@@ -1,3 +1,7 @@
+ifneq (,)
+This makefile requires GNU Make.
+endif
+
 ifeq ($(origin CC), default)
 CC := cc
 endif
@@ -12,7 +16,7 @@ endif
 CFLAGS  ?= -Wall -Wextra -O2 -pipe
 LDFLAGS ?=
 
-INTERNALLDFLAGS :=                              \
+override INTERNALLDFLAGS :=                     \
 	-Treduced-gnu-efi/gnuefi/elf_x86_64_efi.lds \
 	-nostdlib                                   \
 	-zmax-page-size=0x1000                      \
@@ -22,7 +26,7 @@ INTERNALLDFLAGS :=                              \
 	--no-dynamic-linker                         \
 	-ztext
 
-INTERNALCFLAGS :=                \
+override INTERNALCFLAGS :=       \
 	-I.                          \
 	-Ireduced-gnu-efi/inc        \
 	-Ireduced-gnu-efi/inc/x86_64 \
@@ -44,9 +48,9 @@ INTERNALCFLAGS :=                \
 	-mno-red-zone                \
 	-MMD
 
-CFILES      := $(shell find ./src -type f -name '*.c')
-OBJ         := $(CFILES:.c=.o)
-HEADER_DEPS := $(CFILES:.c=.d)
+override CFILES      := $(shell find ./src -type f -name '*.c')
+override OBJ         := $(CFILES:.c=.o)
+override HEADER_DEPS := $(CFILES:.c=.d)
 
 .PHONY: all
 all: HELLO.EFI
