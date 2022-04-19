@@ -1,19 +1,18 @@
-ifneq (,)
-This makefile requires GNU Make.
-endif
+define DEFAULT_VAR =
+    ifeq ($(origin $1), default)
+        override $(1) := $(2)
+    endif
+    ifeq ($(origin $1), undefined)
+        override $(1) := $(2)
+    endif
+endef
 
-ifeq ($(origin CC), default)
-CC := cc
-endif
-ifeq ($(origin LD), default)
-LD := ld
-endif
-OBJCOPY ?= objcopy
-ifeq ($(origin AR), default)
-AR := ar
-endif
+$(eval $(call DEFAULT_VAR,CC,cc))
+$(eval $(call DEFAULT_VAR,LD,ld))
+$(eval $(call DEFAULT_VAR,OBJCOPY,objcopy))
+$(eval $(call DEFAULT_VAR,AR,ar))
 
-CFLAGS  ?= -Wall -Wextra -O2 -pipe
+CFLAGS ?= -Wall -Wextra -O2 -g -pipe
 LDFLAGS ?=
 
 override INTERNALLDFLAGS :=                     \
@@ -35,6 +34,7 @@ override INTERNALCFLAGS :=       \
 	-ffreestanding               \
 	-fshort-wchar                \
 	-fno-stack-protector         \
+	-fno-stack-check             \
 	-fpie                        \
 	-fno-lto                     \
 	-m64                         \
@@ -48,8 +48,8 @@ override INTERNALCFLAGS :=       \
 	-mno-red-zone                \
 	-MMD
 
-override CFILES      := $(shell find ./src -type f -name '*.c')
-override OBJ         := $(CFILES:.c=.o)
+override CFILES := $(shell find ./src -type f -name '*.c')
+override OBJ := $(CFILES:.c=.o)
 override HEADER_DEPS := $(CFILES:.c=.d)
 
 .PHONY: all
@@ -58,17 +58,23 @@ all: HELLO.EFI
 reduced-gnu-efi:
 	git clone https://github.com/limine-bootloader/reduced-gnu-efi.git
 
-reduced-gnu-efi/gnuefi/crt0-efi-x86_64.o reduced-gnu-efi/gnuefi/libgnuefi.a: reduced-gnu-efi
+reduced-gnu-efi/gnuefi/crt0-efi-x86_64.o: reduced-gnu-efi-build
+	true
+
+reduced-gnu-efi/gnuefi/libgnuefi.a: reduced-gnu-efi-build
+	true
+
+.PHONY: reduced-gnu-efi-build
+reduced-gnu-efi-build: reduced-gnu-efi
 	$(MAKE) -C reduced-gnu-efi/gnuefi CC="$(CC)" AR="$(AR)" ARCH=x86_64
 
 HELLO.EFI: hello.elf
-	$(OBJCOPY) -j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel -j .rela -j .rel.* -j .rela.* -j .reloc --target efi-app-x86_64 $< $@
+	$(OBJCOPY) -O binary $< $@
 
 hello.elf: reduced-gnu-efi/gnuefi/crt0-efi-x86_64.o reduced-gnu-efi/gnuefi/libgnuefi.a $(OBJ)
 	$(LD) $^ $(LDFLAGS) $(INTERNALLDFLAGS) -o $@
 
 -include $(HEADER_DEPS)
-
 %.o: %.c reduced-gnu-efi
 	$(CC) $(CFLAGS) $(INTERNALCFLAGS) -c $< -o $@
 
@@ -80,7 +86,7 @@ ovmf:
 run: all ovmf
 	mkdir -p boot/EFI/BOOT
 	cp HELLO.EFI boot/EFI/BOOT/BOOTX64.EFI
-	qemu-system-x86_64 -M q35 -drive file=fat:rw:boot -bios ovmf/OVMF.fd
+	qemu-system-x86_64 -net none -M q35 -drive file=fat:rw:boot -bios ovmf/OVMF.fd
 	rm -rf boot
 
 .PHONY: clean
