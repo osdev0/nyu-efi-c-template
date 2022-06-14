@@ -1,5 +1,5 @@
 boot
-reduced-gnu-efi
+limine-efi
 ovmf
 *.o
 *.d
