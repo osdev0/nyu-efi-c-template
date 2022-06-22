@@ -61,7 +61,7 @@ limine-efi:
 limine-efi/gnuefi/crt0-efi-x86_64.o: limine-efi-build
 	true
 
-limine-efi/gnuefi/libgnuefi.a: limine-efi-build
+limine-efi/gnuefi/reloc_x86_64.o: limine-efi-build
 	true
 
 .PHONY: limine-efi-build
@@ -71,7 +71,7 @@ limine-efi-build: limine-efi
 HELLO.EFI: hello.elf
 	$(OBJCOPY) -O binary $< $@
 
-hello.elf: limine-efi/gnuefi/crt0-efi-x86_64.o limine-efi/gnuefi/libgnuefi.a $(OBJ)
+hello.elf: limine-efi/gnuefi/crt0-efi-x86_64.o limine-efi/gnuefi/reloc_x86_64.o $(OBJ)
 	$(LD) $^ $(LDFLAGS) $(INTERNALLDFLAGS) -o $@
 
 -include $(HEADER_DEPS)
