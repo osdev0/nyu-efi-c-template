@@ -1,8 +1,8 @@
 define DEFAULT_VAR =
-    ifeq ($(origin $1), default)
+    ifeq ($(origin $1),default)
         override $(1) := $(2)
     endif
-    ifeq ($(origin $1), undefined)
+    ifeq ($(origin $1),undefined)
         override $(1) := $(2)
     endif
 endef
@@ -42,7 +42,6 @@ override INTERNALCFLAGS :=  \
     -mabi=sysv              \
     -mno-80387              \
     -mno-mmx                \
-    -mno-3dnow              \
     -mno-sse                \
     -mno-sse2               \
     -mno-red-zone           \
@@ -58,15 +57,8 @@ all: HELLO.EFI
 limine-efi:
 	git clone https://github.com/limine-bootloader/limine-efi.git
 
-limine-efi/gnuefi/crt0-efi-x86_64.o: limine-efi-build
-	true
-
-limine-efi/gnuefi/reloc_x86_64.o: limine-efi-build
-	true
-
-.PHONY: limine-efi-build
-limine-efi-build: limine-efi
-	$(MAKE) -C limine-efi/gnuefi CC="$(CC)" AR="$(AR)" ARCH=x86_64
+limine-efi/gnuefi/crt0-efi-x86_64.o limine-efi/gnuefi/reloc_x86_64.o: limine-efi
+	$(MAKE) -C limine-efi/gnuefi CC="$(CC)" ARCH=x86_64
 
 HELLO.EFI: hello.elf
 	$(OBJCOPY) -O binary $< $@
