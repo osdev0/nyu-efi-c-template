@@ -10,33 +10,28 @@ endef
 $(eval $(call DEFAULT_VAR,CC,cc))
 $(eval $(call DEFAULT_VAR,LD,ld))
 $(eval $(call DEFAULT_VAR,OBJCOPY,objcopy))
-$(eval $(call DEFAULT_VAR,AR,ar))
 
-CFLAGS ?= -Wall -Wextra -O2 -g -pipe
+CFLAGS ?= -g -O2 -pipe -Wall -Wextra
 LDFLAGS ?=
 
 override INTERNALLDFLAGS :=                \
     -Tlimine-efi/gnuefi/elf_x86_64_efi.lds \
     -nostdlib                              \
-    -zmax-page-size=0x1000                 \
-    -melf_x86_64                           \
+    -z max-page-size=0x1000                \
+    -m elf_x86_64                          \
     -static                                \
     -pie                                   \
     --no-dynamic-linker                    \
-    -ztext
+    -z text
 
 override INTERNALCFLAGS :=  \
-    -I.                     \
-    -Ilimine-efi/inc        \
-    -Ilimine-efi/inc/x86_64 \
-    -DGNU_EFI_USE_MS_ABI    \
     -std=gnu11              \
     -ffreestanding          \
-    -fshort-wchar           \
     -fno-stack-protector    \
     -fno-stack-check        \
-    -fpie                   \
+    -fshort-wchar           \
     -fno-lto                \
+    -fpie                   \
     -m64                    \
     -march=x86-64           \
     -mabi=sysv              \
@@ -45,7 +40,11 @@ override INTERNALCFLAGS :=  \
     -mno-sse                \
     -mno-sse2               \
     -mno-red-zone           \
-    -MMD
+    -MMD                    \
+    -DGNU_EFI_USE_MS_ABI    \
+    -I.                     \
+    -Ilimine-efi/inc        \
+    -Ilimine-efi/inc/x86_64
 
 override CFILES := $(shell find ./src -type f -name '*.c')
 override OBJ := $(CFILES:.c=.o)
@@ -58,7 +57,7 @@ limine-efi:
 	git clone https://github.com/limine-bootloader/limine-efi.git
 
 limine-efi/gnuefi/crt0-efi-x86_64.o limine-efi/gnuefi/reloc_x86_64.o: limine-efi
-	$(MAKE) -C limine-efi/gnuefi CC="$(CC)" ARCH=x86_64
+	$(MAKE) -C limine-efi/gnuefi ARCH=x86_64
 
 HELLO.EFI: hello.elf
 	$(OBJCOPY) -O binary $< $@
