@@ -1,3 +1,6 @@
+# Nuke built-in rules and variables.
+override MAKEFLAGS += -rR
+
 define DEFAULT_VAR =
     ifeq ($(origin $1),default)
         override $(1) := $(2)
@@ -14,7 +17,7 @@ $(eval $(call DEFAULT_VAR,OBJCOPY,objcopy))
 CFLAGS ?= -g -O2 -pipe -Wall -Wextra
 LDFLAGS ?=
 
-override INTERNALLDFLAGS :=                \
+override LDFLAGS +=                        \
     -Tlimine-efi/gnuefi/elf_x86_64_efi.lds \
     -nostdlib                              \
     -z max-page-size=0x1000                \
@@ -24,7 +27,7 @@ override INTERNALLDFLAGS :=                \
     --no-dynamic-linker                    \
     -z text
 
-override INTERNALCFLAGS :=  \
+override CFLAGS +=          \
     -std=gnu11              \
     -ffreestanding          \
     -fno-stack-protector    \
@@ -39,12 +42,15 @@ override INTERNALCFLAGS :=  \
     -mno-mmx                \
     -mno-sse                \
     -mno-sse2               \
-    -mno-red-zone           \
-    -MMD                    \
-    -DGNU_EFI_USE_MS_ABI    \
+    -mno-red-zone
+
+override CPPFLAGS :=        \
     -I.                     \
     -Ilimine-efi/inc        \
-    -Ilimine-efi/inc/x86_64
+    -Ilimine-efi/inc/x86_64 \
+    $(CPPFLAGS)             \
+    -DGNU_EFI_USE_MS_ABI    \
+    -MMD
 
 override CFILES := $(shell find ./src -type f -name '*.c')
 override OBJ := $(CFILES:.c=.o)
@@ -63,11 +69,11 @@ HELLO.EFI: hello.elf
 	$(OBJCOPY) -O binary $< $@
 
 hello.elf: limine-efi/gnuefi/crt0-efi-x86_64.o limine-efi/gnuefi/reloc_x86_64.o $(OBJ)
-	$(LD) $^ $(LDFLAGS) $(INTERNALLDFLAGS) -o $@
+	$(LD) $^ $(LDFLAGS) -o $@
 
 -include $(HEADER_DEPS)
 %.o: %.c limine-efi
-	$(CC) $(CFLAGS) $(INTERNALCFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 ovmf:
 	mkdir -p ovmf
