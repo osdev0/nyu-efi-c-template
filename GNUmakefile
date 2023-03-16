@@ -14,8 +14,8 @@ $(eval $(call DEFAULT_VAR,CC,cc))
 $(eval $(call DEFAULT_VAR,LD,ld))
 $(eval $(call DEFAULT_VAR,OBJCOPY,objcopy))
 
-CFLAGS ?= -g -O2 -pipe -Wall -Wextra
-LDFLAGS ?=
+$(eval $(call DEFAULT_VAR,CFLAGS,-g -O2 -pipe -Wall -Wextra))
+$(eval $(call DEFAULT_VAR,LDFLAGS,))
 
 override LDFLAGS +=                        \
     -Tlimine-efi/gnuefi/elf_x86_64_efi.lds \
