@@ -1,6 +1,6 @@
-boot
-limine-efi
-ovmf
+/boot
+/limine-efi
+/ovmf
 *.o
 *.d
 *.elf
