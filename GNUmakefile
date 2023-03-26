@@ -89,6 +89,7 @@ run: all ovmf
 
 .PHONY: clean
 clean:
+	$(MAKE) -C limine-efi/gnuefi ARCH=x86_64 clean
 	rm -rf HELLO.EFI hello.elf $(OBJ) $(HEADER_DEPS)
 
 .PHONY: distclean
