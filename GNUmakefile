@@ -50,9 +50,10 @@ override CPPFLAGS :=        \
     -Ilimine-efi/inc/x86_64 \
     $(CPPFLAGS)             \
     -DGNU_EFI_USE_MS_ABI    \
-    -MMD
+    -MMD                    \
+    -MP
 
-override CFILES := $(shell find ./src -type f -name '*.c')
+override CFILES := $(shell find -L ./src -type f -name '*.c')
 override OBJ := $(CFILES:.c=.o)
 override HEADER_DEPS := $(CFILES:.c=.d)
 
@@ -60,7 +61,7 @@ override HEADER_DEPS := $(CFILES:.c=.d)
 all: HELLO.EFI
 
 limine-efi:
-	git clone https://github.com/limine-bootloader/limine-efi.git
+	git clone https://github.com/limine-bootloader/limine-efi.git --depth=1
 
 limine-efi/gnuefi/crt0-efi-x86_64.o limine-efi/gnuefi/reloc_x86_64.o: limine-efi
 	$(MAKE) -C limine-efi/gnuefi ARCH=x86_64
