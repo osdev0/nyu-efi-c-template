@@ -14,7 +14,7 @@ $(eval $(call DEFAULT_VAR,CC,cc))
 $(eval $(call DEFAULT_VAR,LD,ld))
 $(eval $(call DEFAULT_VAR,OBJCOPY,objcopy))
 
-$(eval $(call DEFAULT_VAR,CFLAGS,-g -O2 -pipe -Wall -Wextra))
+$(eval $(call DEFAULT_VAR,CFLAGS,-g -O2 -pipe))
 $(eval $(call DEFAULT_VAR,LDFLAGS,))
 
 override LDFLAGS += \
@@ -28,13 +28,15 @@ override LDFLAGS += \
     -z text
 
 override CFLAGS += \
+    -Wall \
+    -Wextra \
     -std=gnu11 \
     -ffreestanding \
     -fno-stack-protector \
     -fno-stack-check \
     -fshort-wchar \
     -fno-lto \
-    -fpie \
+    -fPIE \
     -m64 \
     -march=x86-64 \
     -mabi=sysv \
