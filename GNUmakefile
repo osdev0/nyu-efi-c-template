@@ -10,9 +10,12 @@ define DEFAULT_VAR =
     endif
 endef
 
-$(eval $(call DEFAULT_VAR,CC,cc))
-$(eval $(call DEFAULT_VAR,LD,ld))
-$(eval $(call DEFAULT_VAR,OBJCOPY,objcopy))
+override DEFAULT_CC := cc
+$(eval $(call DEFAULT_VAR,CC,$(DEFAULT_CC)))
+override DEFAULT_LD := ld
+$(eval $(call DEFAULT_VAR,LD,$(DEFAULT_LD)))
+override DEFAULT_OBJCOPY := objcopy
+$(eval $(call DEFAULT_VAR,OBJCOPY,$(DEFAULT_OBJCOPY)))
 
 override DEFAULT_CFLAGS := -g -O2 -pipe
 $(eval $(call DEFAULT_VAR,CFLAGS,$(DEFAULT_CFLAGS)))
