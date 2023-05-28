@@ -58,7 +58,6 @@ override CPPFLAGS := \
     -Ilimine-efi/inc \
     -Ilimine-efi/inc/x86_64 \
     $(CPPFLAGS) \
-    -DGNU_EFI_USE_MS_ABI \
     -MMD \
     -MP
 
