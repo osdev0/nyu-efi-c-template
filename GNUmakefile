@@ -62,7 +62,7 @@ override CPPFLAGS := \
     -MP
 
 override CFILES := $(shell find -L ./src -type f -name '*.c')
-override OBJ := $(CFILES:.c=.o)
+override OBJ := $(CFILES:.c=.c.o)
 override HEADER_DEPS := $(CFILES:.c=.d)
 
 .PHONY: all
@@ -71,17 +71,17 @@ all: HELLO.EFI
 limine-efi:
 	git clone https://github.com/limine-bootloader/limine-efi.git --depth=1
 
-limine-efi/gnuefi/crt0-efi-x86_64.o limine-efi/gnuefi/reloc_x86_64.o: limine-efi
+limine-efi/gnuefi/crt0-efi-x86_64.S.o limine-efi/gnuefi/reloc_x86_64.c.o: limine-efi
 	$(MAKE) -C limine-efi/gnuefi ARCH=x86_64
 
 HELLO.EFI: hello.elf
 	$(OBJCOPY) -O binary $< $@
 
-hello.elf: limine-efi/gnuefi/crt0-efi-x86_64.o limine-efi/gnuefi/reloc_x86_64.o $(OBJ)
+hello.elf: limine-efi/gnuefi/crt0-efi-x86_64.S.o limine-efi/gnuefi/reloc_x86_64.c.o $(OBJ)
 	$(LD) $^ $(LDFLAGS) -o $@
 
 -include $(HEADER_DEPS)
-%.o: %.c limine-efi
+%.c.o: %.c limine-efi
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 ovmf:
