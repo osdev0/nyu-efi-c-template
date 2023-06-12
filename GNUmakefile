@@ -63,7 +63,7 @@ override CPPFLAGS := \
 
 override CFILES := $(shell find -L ./src -type f -name '*.c')
 override OBJ := $(CFILES:.c=.c.o)
-override HEADER_DEPS := $(CFILES:.c=.d)
+override HEADER_DEPS := $(CFILES:.c=.c.d)
 
 .PHONY: all
 all: HELLO.EFI
