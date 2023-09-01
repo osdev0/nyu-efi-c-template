@@ -67,20 +67,20 @@ override HEADER_DEPS := $(CFILES:.c=.c.d)
 .PHONY: all
 all: HELLO.EFI
 
-limine-efi:
+limine-efi limine-efi/gnuefi/elf_x86_64_efi.lds:
 	git clone https://github.com/limine-bootloader/limine-efi.git --depth=1
 
 limine-efi/gnuefi/crt0-efi-x86_64.S.o limine-efi/gnuefi/reloc_x86_64.c.o: limine-efi
 	$(MAKE) -C limine-efi/gnuefi ARCH=x86_64
 
-HELLO.EFI: hello.elf
+HELLO.EFI: hello.elf GNUmakefile
 	$(OBJCOPY) -O binary $< $@
 
-hello.elf: limine-efi/gnuefi/crt0-efi-x86_64.S.o limine-efi/gnuefi/reloc_x86_64.c.o $(OBJ)
-	$(LD) $^ $(LDFLAGS) -o $@
+hello.elf: GNUmakefile limine-efi/gnuefi/elf_x86_64_efi.lds limine-efi/gnuefi/crt0-efi-x86_64.S.o limine-efi/gnuefi/reloc_x86_64.c.o $(OBJ)
+	$(LD) limine-efi/gnuefi/crt0-efi-x86_64.S.o limine-efi/gnuefi/reloc_x86_64.c.o $(OBJ) $(LDFLAGS) -o $@
 
 -include $(HEADER_DEPS)
-%.c.o: %.c limine-efi
+%.c.o: %.c GNUmakefile limine-efi
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 ovmf:
