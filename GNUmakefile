@@ -85,7 +85,7 @@ hello.elf: GNUmakefile limine-efi/gnuefi/elf_x86_64_efi.lds limine-efi/gnuefi/cr
 
 ovmf:
 	mkdir -p ovmf
-	cd ovmf && curl -Lo OVMF-X64.zip https://efi.akeo.ie/OVMF/OVMF-X64.zip && unzip OVMF-X64.zip
+	cd ovmf && curl -Lo OVMF.fd https://retrage.github.io/edk2-nightly/bin/RELEASEX64_OVMF.fd
 
 .PHONY: run
 run: all ovmf
