@@ -1,7 +1,5 @@
 /boot
 /limine-efi
 /ovmf
-*.o
-*.d
-*.elf
-*.EFI
+/bin
+/obj
