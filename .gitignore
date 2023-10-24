@@ -1,5 +1,5 @@
 /boot
 /limine-efi
-/ovmf
+/ovmf*
 /bin
 /obj
