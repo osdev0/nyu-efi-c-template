@@ -100,9 +100,7 @@ endif
 
 override LDFLAGS += \
     -nostdlib \
-    -static \
     -pie \
-    --no-dynamic-linker \
     -z text \
     -z max-page-size=0x1000 \
     -T limine-efi/gnuefi/elf_$(ARCH)_efi.lds
