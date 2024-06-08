@@ -130,6 +130,7 @@ limine-efi:
 bin/HELLO.EFI: bin/hello.elf GNUmakefile
 	mkdir -p "$$(dirname $@)"
 	$(OBJCOPY) -O binary $< $@
+	dd if=/dev/zero of=$@ bs=4096 count=0 seek=$$(( ($$(wc -c < $@) + 4095) / 4096 ))
 
 bin/hello.elf: GNUmakefile limine-efi/gnuefi/elf_$(ARCH)_efi.lds limine-efi/gnuefi/crt0-efi-$(ARCH).S.o limine-efi/gnuefi/reloc_$(ARCH).c.o $(OBJ)
 	mkdir -p "$$(dirname $@)"
