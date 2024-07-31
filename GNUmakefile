@@ -94,6 +94,16 @@ else ifeq ($(ARCH),riscv64)
     override LDFLAGS += \
         -m elf64lriscv \
         --no-relax
+else ifeq ($(ARCH),loongarch64)
+    ifeq ($(CC_IS_CLANG),yes)
+        override CC += \
+            -target loongarch64-none
+    endif
+    override CFLAGS += \
+        -march=loongarch64 \
+        -mabi=lp64s
+    override LDFLAGS += \
+        -m elf64loongarch
 else
     $(error Architecture $(ARCH) not supported)
 endif
@@ -154,6 +164,10 @@ ovmf-riscv64:
 	mkdir -p ovmf-riscv64
 	cd ovmf-riscv64 && curl -o OVMF.fd https://retrage.github.io/edk2-nightly/bin/RELEASERISCV64_VIRT_CODE.fd && dd if=/dev/zero of=OVMF.fd bs=1 count=0 seek=33554432
 
+ovmf-loongarch64:
+	mkdir -p ovmf-loongarch64
+	cd ovmf-loongarch64 && curl -o OVMF.fd https://raw.githubusercontent.com/limine-bootloader/firmware/trunk/loongarch64/QEMU_EFI.fd
+
 .PHONY: run
 run: all ovmf-$(ARCH)
 	mkdir -p boot/EFI/BOOT
@@ -166,6 +180,9 @@ else ifeq ($(ARCH),aarch64)
 else ifeq ($(ARCH),riscv64)
 	cp bin/HELLO.EFI boot/EFI/BOOT/BOOTRISCV64.EFI
 	qemu-system-$(ARCH) -net none -M virt -cpu rv64 -device ramfb -device qemu-xhci -device usb-kbd -drive if=pflash,unit=0,format=raw,file=ovmf-$(ARCH)/OVMF.fd -device virtio-scsi-pci,id=scsi -device scsi-hd,drive=hd0 -drive id=hd0,file=fat:rw:boot
+else ifeq ($(ARCH),loongarch64)
+	cp bin/HELLO.EFI boot/EFI/BOOT/BOOTLOONGARCH64.EFI
+	qemu-system-$(ARCH) -net none -M virt -cpu la464 -device ramfb -device qemu-xhci -device usb-kbd -bios ovmf-$(ARCH)/OVMF.fd -drive file=fat:rw:boot
 endif
 	rm -rf boot
 
