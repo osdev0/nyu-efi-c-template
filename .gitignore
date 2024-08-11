@@ -3,5 +3,5 @@
 /src/cc-runtime.c
 /limine-efi
 /ovmf*
-/bin
-/obj
+/bin-*
+/obj-*

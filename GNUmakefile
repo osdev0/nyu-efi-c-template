@@ -124,8 +124,8 @@ override LDFLAGS += \
     -T limine-efi/gnuefi/elf_$(ARCH)_efi.lds
 
 override CFILES := $(shell cd src && find -L * -type f -name '*.c')
-override OBJ := $(addprefix obj/,$(CFILES:.c=.c.o))
-override HEADER_DEPS := $(addprefix obj/,$(CFILES:.c=.c.d))
+override OBJ := $(addprefix obj-$(ARCH)/,$(CFILES:.c=.c.o))
+override HEADER_DEPS := $(addprefix obj-$(ARCH)/,$(CFILES:.c=.c.d))
 
 # Ensure the dependencies have been obtained.
 override MISSING_DEPS := $(shell if ! test -d freestanding-headers || ! test -f src/cc-runtime.c || ! test -d limine-efi; then echo 1; fi)
@@ -134,7 +134,7 @@ ifeq ($(MISSING_DEPS),1)
 endif
 
 .PHONY: all
-all: bin/HELLO.EFI
+all: bin-$(ARCH)/HELLO.EFI
 
 limine-efi/gnuefi/crt0-efi-$(ARCH).S.o: limine-efi
 
@@ -148,18 +148,18 @@ limine-efi:
 		CFLAGS="$(USER_CFLAGS) -nostdinc" \
 		CPPFLAGS="$(USER_CPPFLAGS) -isystem ../../freestanding-headers"
 
-bin/HELLO.EFI: bin/hello.elf GNUmakefile
+bin-$(ARCH)/HELLO.EFI: bin-$(ARCH)/hello.elf GNUmakefile
 	mkdir -p "$$(dirname $@)"
 	$(OBJCOPY) -O binary $< $@
 	dd if=/dev/zero of=$@ bs=4096 count=0 seek=$$(( ($$(wc -c < $@) + 4095) / 4096 )) 2>/dev/null
 
-bin/hello.elf: GNUmakefile limine-efi/gnuefi/elf_$(ARCH)_efi.lds limine-efi/gnuefi/crt0-efi-$(ARCH).S.o limine-efi/gnuefi/reloc_$(ARCH).c.o $(OBJ)
+bin-$(ARCH)/hello.elf: GNUmakefile limine-efi/gnuefi/elf_$(ARCH)_efi.lds limine-efi/gnuefi/crt0-efi-$(ARCH).S.o limine-efi/gnuefi/reloc_$(ARCH).c.o $(OBJ)
 	mkdir -p "$$(dirname $@)"
 	$(LD) limine-efi/gnuefi/crt0-efi-$(ARCH).S.o limine-efi/gnuefi/reloc_$(ARCH).c.o $(OBJ) $(LDFLAGS) -o $@
 
 -include $(HEADER_DEPS)
 
-obj/%.c.o: src/%.c GNUmakefile
+obj-$(ARCH)/%.c.o: src/%.c GNUmakefile
 	mkdir -p "$$(dirname $@)"
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
@@ -183,16 +183,16 @@ ovmf-loongarch64:
 run: all ovmf-$(ARCH)
 	mkdir -p boot/EFI/BOOT
 ifeq ($(ARCH),x86_64)
-	cp bin/HELLO.EFI boot/EFI/BOOT/BOOTX64.EFI
+	cp bin-$(ARCH)/HELLO.EFI boot/EFI/BOOT/BOOTX64.EFI
 	qemu-system-$(ARCH) -net none -M q35 -bios ovmf-$(ARCH)/OVMF.fd -drive file=fat:rw:boot
 else ifeq ($(ARCH),aarch64)
-	cp bin/HELLO.EFI boot/EFI/BOOT/BOOTAA64.EFI
+	cp bin-$(ARCH)/HELLO.EFI boot/EFI/BOOT/BOOTAA64.EFI
 	qemu-system-$(ARCH) -net none -M virt -cpu cortex-a72 -device ramfb -device qemu-xhci -device usb-kbd -bios ovmf-$(ARCH)/OVMF.fd -drive file=fat:rw:boot
 else ifeq ($(ARCH),riscv64)
-	cp bin/HELLO.EFI boot/EFI/BOOT/BOOTRISCV64.EFI
+	cp bin-$(ARCH)/HELLO.EFI boot/EFI/BOOT/BOOTRISCV64.EFI
 	qemu-system-$(ARCH) -net none -M virt -cpu rv64 -device ramfb -device qemu-xhci -device usb-kbd -drive if=pflash,unit=0,format=raw,file=ovmf-$(ARCH)/OVMF.fd -device virtio-scsi-pci,id=scsi -device scsi-hd,drive=hd0 -drive id=hd0,file=fat:rw:boot
 else ifeq ($(ARCH),loongarch64)
-	cp bin/HELLO.EFI boot/EFI/BOOT/BOOTLOONGARCH64.EFI
+	cp bin-$(ARCH)/HELLO.EFI boot/EFI/BOOT/BOOTLOONGARCH64.EFI
 	qemu-system-$(ARCH) -net none -M virt -cpu la464 -device ramfb -device qemu-xhci -device usb-kbd -bios ovmf-$(ARCH)/OVMF.fd -drive file=fat:rw:boot
 endif
 	rm -rf boot
@@ -200,8 +200,8 @@ endif
 .PHONY: clean
 clean:
 	$(MAKE) -C limine-efi/gnuefi ARCH=$(ARCH) clean
-	rm -rf bin obj
+	rm -rf bin-$(ARCH) obj-$(ARCH)
 
 .PHONY: distclean
-distclean: clean
-	rm -rf freestanding-headers src/cc-runtime.c limine-efi ovmf*
+distclean:
+	rm -rf bin-* obj-* freestanding-headers src/cc-runtime.c limine-efi ovmf*
