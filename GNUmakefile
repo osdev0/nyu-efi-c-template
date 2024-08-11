@@ -15,7 +15,6 @@ $(eval $(call DEFAULT_VAR,ARCH,$(DEFAULT_ARCH)))
 
 override DEFAULT_CC := cc
 $(eval $(call DEFAULT_VAR,CC,$(DEFAULT_CC)))
-export CC
 override DEFAULT_LD := ld
 $(eval $(call DEFAULT_VAR,LD,$(DEFAULT_LD)))
 override DEFAULT_OBJCOPY := objcopy
