@@ -29,6 +29,10 @@ override DEFAULT_CFLAGS := -g -O2 -pipe
 $(eval $(call DEFAULT_VAR,CFLAGS,$(DEFAULT_CFLAGS)))
 override DEFAULT_CPPFLAGS :=
 $(eval $(call DEFAULT_VAR,CPPFLAGS,$(DEFAULT_CPPFLAGS)))
+ifeq ($(ARCH), x86_64)
+    override DEFAULT_NASMFLAGS := -F dwarf -g
+    $(eval $(call DEFAULT_VAR,NASMFLAGS,$(DEFAULT_NASMFLAGS)))
+endif
 override DEFAULT_LDFLAGS :=
 $(eval $(call DEFAULT_VAR,LDFLAGS,$(DEFAULT_LDFLAGS)))
 
@@ -57,6 +61,11 @@ override CPPFLAGS := \
     -isystem freestanding-headers \
     -MMD \
     -MP
+
+ifeq ($(KARCH),x86_64)
+    override KNASMFLAGS += \
+        -Wall
+endif
 
 ifeq ($(ARCH),x86_64)
     ifeq ($(CC_IS_CLANG),yes)
@@ -124,8 +133,10 @@ override LDFLAGS += \
     -T limine-efi/gnuefi/elf_$(ARCH)_efi.lds
 
 override CFILES := $(shell cd src && find -L * -type f -name '*.c')
-override OBJ := $(addprefix obj-$(ARCH)/,$(CFILES:.c=.c.o))
-override HEADER_DEPS := $(addprefix obj-$(ARCH)/,$(CFILES:.c=.c.d))
+override ASFILES := $(shell cd src && find -L * -type f -name '*.S')
+override NASMFILES := $(shell cd src && find -L * -type f -name '*.asm')
+override OBJ := $(addprefix obj-$(ARCH)/,$(CFILES:.c=.c.o) $(ASFILES:.S=.S.o) $(NASMFILES:.asm=.asm.o))
+override HEADER_DEPS := $(addprefix obj-$(ARCH)/,$(CFILES:.c=.c.d) $(ASFILES:.S=.S.d))
 
 # Ensure the dependencies have been obtained.
 override MISSING_DEPS := $(shell if ! test -d freestanding-headers || ! test -f src/cc-runtime.c || ! test -d limine-efi; then echo 1; fi)
@@ -162,6 +173,14 @@ bin-$(ARCH)/hello.elf: GNUmakefile limine-efi/gnuefi/elf_$(ARCH)_efi.lds limine-
 obj-$(ARCH)/%.c.o: src/%.c GNUmakefile
 	mkdir -p "$$(dirname $@)"
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+
+obj-$(ARCH)/%.S.o: src/%.S GNUmakefile
+	mkdir -p "$$(dirname $@)"
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+
+obj-$(ARCH)/%.asm.o: src/%.asm GNUmakefile
+	mkdir -p "$$(dirname $@)"
+	nasm $(NASMFLAGS) $< -o $@
 
 ovmf-x86_64:
 	mkdir -p ovmf-x86_64
