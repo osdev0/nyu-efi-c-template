@@ -33,22 +33,29 @@ $(eval $(call DEFAULT_VAR,CPPFLAGS,$(DEFAULT_CPPFLAGS)))
 override DEFAULT_LDFLAGS :=
 $(eval $(call DEFAULT_VAR,LDFLAGS,$(DEFAULT_LDFLAGS)))
 
+override USER_CFLAGS := $(CFLAGS)
+override USER_CPPFLAGS := $(CPPFLAGS)
+
 override CFLAGS += \
     -Wall \
     -Wextra \
     -std=gnu11 \
+    -nostdinc \
     -ffreestanding \
     -fno-stack-protector \
     -fno-stack-check \
     -fshort-wchar \
     -fno-lto \
-    -fPIE
+    -fPIE \
+    -ffunction-sections \
+    -fdata-sections
 
 override CPPFLAGS := \
     -I src \
     -I limine-efi/inc \
     -I limine-efi/inc/$(ARCH) \
     $(CPPFLAGS) \
+    -isystem freestanding-headers \
     -MMD \
     -MP
 
@@ -103,7 +110,8 @@ else ifeq ($(ARCH),loongarch64)
         -march=loongarch64 \
         -mabi=lp64s
     override LDFLAGS += \
-        -m elf64loongarch
+        -m elf64loongarch \
+        --no-relax
 else
     $(error Architecture $(ARCH) not supported)
 endif
@@ -113,29 +121,27 @@ override LDFLAGS += \
     -pie \
     -z text \
     -z max-page-size=0x1000 \
+    -gc-sections \
     -T limine-efi/gnuefi/elf_$(ARCH)_efi.lds
 
 override CFILES := $(shell cd src && find -L * -type f -name '*.c')
 override OBJ := $(addprefix obj/,$(CFILES:.c=.c.o))
 override HEADER_DEPS := $(addprefix obj/,$(CFILES:.c=.c.d))
 
+# Ensure the dependencies have been obtained.
+override MISSING_DEPS := $(shell if ! test -d freestanding-headers || ! test -f src/cc-runtime.c || ! test -d limine-efi; then echo 1; fi)
+ifeq ($(MISSING_DEPS),1)
+    $(error Please run the ./get-deps script first)
+endif
+
 .PHONY: all
 all: bin/HELLO.EFI
 
-limine-efi/gnuefi/crt0-efi-$(ARCH).S: limine-efi
-
 limine-efi/gnuefi/crt0-efi-$(ARCH).S.o: limine-efi/gnuefi/crt0-efi-$(ARCH).S
-	$(MAKE) -C limine-efi/gnuefi ARCH=$(ARCH) crt0-efi-$(ARCH).S.o
-
-limine-efi/gnuefi/reloc_$(ARCH).c: limine-efi
+	$(MAKE) -C limine-efi/gnuefi ARCH=$(ARCH) CFLAGS="$(USER_CFLAGS) -nostdinc" CPPFLAGS="$(USER_CPPFLAGS) -isystem ../../freestanding-headers" crt0-efi-$(ARCH).S.o
 
 limine-efi/gnuefi/reloc_$(ARCH).c.o: limine-efi/gnuefi/reloc_$(ARCH).c
-	$(MAKE) -C limine-efi/gnuefi ARCH=$(ARCH) reloc_$(ARCH).c.o
-
-limine-efi/gnuefi/elf_$(ARCH)_efi.lds: limine-efi
-
-limine-efi:
-	git clone https://github.com/limine-bootloader/limine-efi.git --depth=1
+	$(MAKE) -C limine-efi/gnuefi ARCH=$(ARCH) CFLAGS="$(USER_CFLAGS) -nostdinc" CPPFLAGS="$(USER_CPPFLAGS) -isystem ../../freestanding-headers" reloc_$(ARCH).c.o
 
 bin/HELLO.EFI: bin/hello.elf GNUmakefile
 	mkdir -p "$$(dirname $@)"
@@ -193,4 +199,4 @@ clean:
 
 .PHONY: distclean
 distclean: clean
-	rm -rf limine-efi ovmf*
+	rm -rf freestanding-headers src/cc-runtime.c limine-efi ovmf*
