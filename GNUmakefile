@@ -137,16 +137,22 @@ endif
 .PHONY: all
 all: bin/HELLO.EFI
 
-limine-efi/gnuefi/crt0-efi-$(ARCH).S.o: limine-efi/gnuefi/crt0-efi-$(ARCH).S
-	$(MAKE) -C limine-efi/gnuefi ARCH=$(ARCH) CFLAGS="$(USER_CFLAGS) -nostdinc" CPPFLAGS="$(USER_CPPFLAGS) -isystem ../../freestanding-headers" crt0-efi-$(ARCH).S.o
+limine-efi/gnuefi/crt0-efi-$(ARCH).S.o: limine-efi
 
-limine-efi/gnuefi/reloc_$(ARCH).c.o: limine-efi/gnuefi/reloc_$(ARCH).c
-	$(MAKE) -C limine-efi/gnuefi ARCH=$(ARCH) CFLAGS="$(USER_CFLAGS) -nostdinc" CPPFLAGS="$(USER_CPPFLAGS) -isystem ../../freestanding-headers" reloc_$(ARCH).c.o
+limine-efi/gnuefi/reloc_$(ARCH).c.o: limine-efi
+
+.PHONY: limine-efi
+limine-efi:
+	$(MAKE) -C limine-efi/gnuefi \
+		ARCH=$(ARCH) \
+		CC="$(CC)" \
+		CFLAGS="$(USER_CFLAGS) -nostdinc" \
+		CPPFLAGS="$(USER_CPPFLAGS) -isystem ../../freestanding-headers"
 
 bin/HELLO.EFI: bin/hello.elf GNUmakefile
 	mkdir -p "$$(dirname $@)"
 	$(OBJCOPY) -O binary $< $@
-	dd if=/dev/zero of=$@ bs=4096 count=0 seek=$$(( ($$(wc -c < $@) + 4095) / 4096 ))
+	dd if=/dev/zero of=$@ bs=4096 count=0 seek=$$(( ($$(wc -c < $@) + 4095) / 4096 )) 2>/dev/null
 
 bin/hello.elf: GNUmakefile limine-efi/gnuefi/elf_$(ARCH)_efi.lds limine-efi/gnuefi/crt0-efi-$(ARCH).S.o limine-efi/gnuefi/reloc_$(ARCH).c.o $(OBJ)
 	mkdir -p "$$(dirname $@)"
@@ -154,7 +160,7 @@ bin/hello.elf: GNUmakefile limine-efi/gnuefi/elf_$(ARCH)_efi.lds limine-efi/gnue
 
 -include $(HEADER_DEPS)
 
-obj/%.c.o: src/%.c GNUmakefile limine-efi
+obj/%.c.o: src/%.c GNUmakefile
 	mkdir -p "$$(dirname $@)"
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
@@ -194,7 +200,7 @@ endif
 
 .PHONY: clean
 clean:
-	if [ -d limine-efi/gnuefi ]; then $(MAKE) -C limine-efi/gnuefi ARCH=$(ARCH) clean; fi
+	$(MAKE) -C limine-efi/gnuefi ARCH=$(ARCH) clean
 	rm -rf bin obj
 
 .PHONY: distclean
