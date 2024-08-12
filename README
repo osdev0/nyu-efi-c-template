@@ -1,7 +1,7 @@
-limine-efi Hello World
-======================
+limine-efi C template
+=====================
 
-This is a simple "hello world" program using limine-efi.
+This is a simple C "hello world" program template using limine-efi.
 For information about limine-efi, see:
 https://github.com/limine-bootloader/limine-efi
 
