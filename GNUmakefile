@@ -45,7 +45,7 @@ $(eval $(call DEFAULT_VAR,KCFLAGS,$(DEFAULT_KCFLAGS)))
 override DEFAULT_KCPPFLAGS :=
 $(eval $(call DEFAULT_VAR,KCPPFLAGS,$(DEFAULT_KCPPFLAGS)))
 
-ifeq ($(KARCH), x86_64)
+ifeq ($(KARCH),x86_64)
     # User controllable nasm flags.
     override DEFAULT_KNASMFLAGS := -F dwarf -g
     $(eval $(call DEFAULT_VAR,KNASMFLAGS,$(DEFAULT_KNASMFLAGS)))
