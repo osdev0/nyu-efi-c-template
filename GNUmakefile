@@ -155,7 +155,7 @@ override KLDFLAGS += \
     -z text \
     -z max-page-size=0x1000 \
     -gc-sections \
-    -T limine-efi/gnuefi/elf_$(KARCH)_efi.lds
+    -T limine-efi/src/elf_$(KARCH)_efi.lds
 
 # Use "find" to glob all *.c, *.S, and *.asm files in the tree and obtain the
 # object and header dependency file names.
@@ -181,13 +181,13 @@ endif
 all: bin-$(KARCH)/$(OUTPUT).efi
 
 # Rules to build the limine-efi objects we need.
-limine-efi/gnuefi/crt0-efi-$(KARCH).S.o: limine-efi
+limine-efi/src/crt0-efi-$(KARCH).S.o: limine-efi
 
-limine-efi/gnuefi/reloc_$(KARCH).c.o: limine-efi
+limine-efi/src/reloc_$(KARCH).c.o: limine-efi
 
 .PHONY: limine-efi
 limine-efi:
-	$(MAKE) -C limine-efi/gnuefi \
+	$(MAKE) -C limine-efi/src -f limine-efi.mk \
 		ARCH="$(KARCH)" \
 		CC="$(KCC)" \
 		CFLAGS="$(USER_KCFLAGS) -nostdinc" \
@@ -200,9 +200,9 @@ bin-$(KARCH)/$(OUTPUT).efi: bin-$(KARCH)/$(OUTPUT) GNUmakefile
 	dd if=/dev/zero of=$@ bs=4096 count=0 seek=$$(( ($$(wc -c < $@) + 4095) / 4096 )) 2>/dev/null
 
 # Link rules for the final executable.
-bin-$(KARCH)/$(OUTPUT): GNUmakefile limine-efi/gnuefi/elf_$(KARCH)_efi.lds limine-efi/gnuefi/crt0-efi-$(KARCH).S.o limine-efi/gnuefi/reloc_$(KARCH).c.o $(OBJ)
+bin-$(KARCH)/$(OUTPUT): GNUmakefile limine-efi/src/elf_$(KARCH)_efi.lds limine-efi/src/crt0-efi-$(KARCH).S.o limine-efi/src/reloc_$(KARCH).c.o $(OBJ)
 	mkdir -p "$$(dirname $@)"
-	$(KLD) limine-efi/gnuefi/crt0-efi-$(KARCH).S.o limine-efi/gnuefi/reloc_$(KARCH).c.o $(OBJ) $(KLDFLAGS) -o $@
+	$(KLD) limine-efi/src/crt0-efi-$(KARCH).S.o limine-efi/src/reloc_$(KARCH).c.o $(OBJ) $(KLDFLAGS) -o $@
 
 # Include header dependencies.
 -include $(HEADER_DEPS)
@@ -263,7 +263,7 @@ endif
 # Remove object files and the final executable.
 .PHONY: clean
 clean:
-	$(MAKE) -C limine-efi/gnuefi ARCH="$(KARCH)" clean
+	$(MAKE) -C limine-efi/src -f limine-efi.mk ARCH="$(KARCH)" clean
 	rm -rf bin-$(KARCH) obj-$(KARCH)
 
 # Remove everything built and generated including downloaded dependencies.
