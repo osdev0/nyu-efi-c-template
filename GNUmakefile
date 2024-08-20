@@ -225,38 +225,25 @@ obj-$(KARCH)/%.asm.o: src/%.asm GNUmakefile
 endif
 
 # Rules to download the UEFI firmware per architecture for testing.
-ovmf-x86_64:
-	mkdir -p ovmf-x86_64
-	cd ovmf-x86_64 && curl -o OVMF.fd https://retrage.github.io/edk2-nightly/bin/RELEASEX64_OVMF.fd
-
-ovmf-aarch64:
-	mkdir -p ovmf-aarch64
-	cd ovmf-aarch64 && curl -o OVMF.fd https://retrage.github.io/edk2-nightly/bin/RELEASEAARCH64_QEMU_EFI.fd
-
-ovmf-riscv64:
-	mkdir -p ovmf-riscv64
-	cd ovmf-riscv64 && curl -o OVMF.fd https://retrage.github.io/edk2-nightly/bin/RELEASERISCV64_VIRT_CODE.fd && dd if=/dev/zero of=OVMF.fd bs=1 count=0 seek=33554432
-
-ovmf-loongarch64:
-	mkdir -p ovmf-loongarch64
-	cd ovmf-loongarch64 && curl -o OVMF.fd https://raw.githubusercontent.com/limine-bootloader/firmware/trunk/loongarch64/QEMU_EFI.fd
+ovmf-code-$(KARCH).fd:
+	curl -Lo $@ https://github.com/limine-bootloader/edk2-ovmf-nightly/releases/latest/download/ovmf-code-$(KARCH).fd
 
 # Rules for running our executable in QEMU.
 .PHONY: run
-run: all ovmf-$(KARCH)
+run: all ovmf-code-$(KARCH).fd
 	mkdir -p boot/EFI/BOOT
 ifeq ($(KARCH),x86_64)
 	cp bin-$(KARCH)/$(OUTPUT).efi boot/EFI/BOOT/BOOTX64.EFI
-	qemu-system-$(KARCH) -net none -M q35 -bios ovmf-$(KARCH)/OVMF.fd -drive file=fat:rw:boot
+	qemu-system-$(KARCH) -net none -M q35 -bios ovmf-code-$(KARCH).fd -drive file=fat:rw:boot
 else ifeq ($(KARCH),aarch64)
 	cp bin-$(KARCH)/$(OUTPUT).efi boot/EFI/BOOT/BOOTAA64.EFI
-	qemu-system-$(KARCH) -net none -M virt -cpu cortex-a72 -device ramfb -device qemu-xhci -device usb-kbd -bios ovmf-$(KARCH)/OVMF.fd -drive file=fat:rw:boot
+	qemu-system-$(KARCH) -net none -M virt -cpu cortex-a72 -device ramfb -device qemu-xhci -device usb-kbd -bios ovmf-code-$(KARCH).fd -drive file=fat:rw:boot
 else ifeq ($(KARCH),riscv64)
 	cp bin-$(KARCH)/$(OUTPUT).efi boot/EFI/BOOT/BOOTRISCV64.EFI
-	qemu-system-$(KARCH) -net none -M virt -cpu rv64 -device ramfb -device qemu-xhci -device usb-kbd -drive if=pflash,unit=0,format=raw,file=ovmf-$(KARCH)/OVMF.fd -device virtio-scsi-pci,id=scsi -device scsi-hd,drive=hd0 -drive id=hd0,file=fat:rw:boot
+	qemu-system-$(KARCH) -net none -M virt -cpu rv64 -device ramfb -device qemu-xhci -device usb-kbd -drive if=pflash,unit=0,format=raw,file=ovmf-code-$(KARCH).fd -device virtio-scsi-pci,id=scsi -device scsi-hd,drive=hd0 -drive id=hd0,file=fat:rw:boot
 else ifeq ($(KARCH),loongarch64)
 	cp bin-$(KARCH)/$(OUTPUT).efi boot/EFI/BOOT/BOOTLOONGARCH64.EFI
-	qemu-system-$(KARCH) -net none -M virt -cpu la464 -device ramfb -device qemu-xhci -device usb-kbd -bios ovmf-$(KARCH)/OVMF.fd -drive file=fat:rw:boot
+	qemu-system-$(KARCH) -net none -M virt -cpu la464 -device ramfb -device qemu-xhci -device usb-kbd -bios ovmf-code-$(KARCH).fd -drive file=fat:rw:boot
 endif
 	rm -rf boot
 
