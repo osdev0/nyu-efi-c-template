@@ -2,6 +2,6 @@
 /freestanding-headers
 /src/cc-runtime.c
 /limine-efi
-/ovmf*
+/ovmf
 /bin-*
 /obj-*

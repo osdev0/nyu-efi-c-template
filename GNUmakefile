@@ -19,6 +19,10 @@ endef
 override DEFAULT_KARCH := x86_64
 $(eval $(call DEFAULT_VAR,KARCH,$(DEFAULT_KARCH)))
 
+# Default user QEMU flags. These are appended to the QEMU command calls.
+override DEFAULT_QEMUFLAGS := -m 2G
+$(eval $(call DEFAULT_VAR,QEMUFLAGS,$(DEFAULT_QEMUFLAGS)))
+
 # User controllable C compiler command.
 override DEFAULT_KCC := clang
 $(eval $(call DEFAULT_VAR,KCC,$(DEFAULT_KCC)))
@@ -225,25 +229,68 @@ obj-$(KARCH)/%.asm.o: src/%.asm GNUmakefile
 endif
 
 # Rules to download the UEFI firmware per architecture for testing.
-ovmf-code-$(KARCH).fd:
+ovmf/ovmf-code-$(KARCH).fd:
+	mkdir -p ovmf
 	curl -Lo $@ https://github.com/limine-bootloader/edk2-ovmf-nightly/releases/latest/download/ovmf-code-$(KARCH).fd
+	if [ "$(KARCH)" = "aarch64" ]; then dd if=/dev/zero of=$@ bs=1 count=0 seek=67108864 2>/dev/null; fi
+	if [ "$(KARCH)" = "riscv64" ]; then dd if=/dev/zero of=$@ bs=1 count=0 seek=33554432 2>/dev/null; fi
+
+ovmf/ovmf-vars-$(KARCH).fd:
+	mkdir -p ovmf
+	curl -Lo $@ https://github.com/limine-bootloader/edk2-ovmf-nightly/releases/latest/download/ovmf-vars-$(KARCH).fd
+	if [ "$(KARCH)" = "aarch64" ]; then dd if=/dev/zero of=$@ bs=1 count=0 seek=67108864 2>/dev/null; fi
+	if [ "$(KARCH)" = "riscv64" ]; then dd if=/dev/zero of=$@ bs=1 count=0 seek=33554432 2>/dev/null; fi
 
 # Rules for running our executable in QEMU.
 .PHONY: run
-run: all ovmf-code-$(KARCH).fd
+run: all ovmf/ovmf-code-$(KARCH).fd ovmf/ovmf-vars-$(KARCH).fd
 	mkdir -p boot/EFI/BOOT
 ifeq ($(KARCH),x86_64)
 	cp bin-$(KARCH)/$(OUTPUT).efi boot/EFI/BOOT/BOOTX64.EFI
-	qemu-system-$(KARCH) -net none -M q35 -bios ovmf-code-$(KARCH).fd -drive file=fat:rw:boot
+	qemu-system-$(KARCH) \
+		-M q35 \
+		-drive if=pflash,unit=0,format=raw,file=ovmf/ovmf-code-$(KARCH).fd,readonly=on \
+		-drive if=pflash,unit=1,format=raw,file=ovmf/ovmf-vars-$(KARCH).fd \
+		-drive file=fat:rw:boot \
+		$(QEMUFLAGS)
 else ifeq ($(KARCH),aarch64)
 	cp bin-$(KARCH)/$(OUTPUT).efi boot/EFI/BOOT/BOOTAA64.EFI
-	qemu-system-$(KARCH) -net none -M virt -cpu cortex-a72 -device ramfb -device qemu-xhci -device usb-kbd -bios ovmf-code-$(KARCH).fd -drive file=fat:rw:boot
+	qemu-system-$(KARCH) \
+		-M virt \
+		-cpu cortex-a72 \
+		-device ramfb \
+		-device qemu-xhci \
+		-device usb-kbd \
+		-drive if=pflash,unit=0,format=raw,file=ovmf/ovmf-code-$(KARCH).fd,readonly=on \
+		-drive if=pflash,unit=1,format=raw,file=ovmf/ovmf-vars-$(KARCH).fd \
+		-drive file=fat:rw:boot \
+		$(QEMUFLAGS)
 else ifeq ($(KARCH),riscv64)
 	cp bin-$(KARCH)/$(OUTPUT).efi boot/EFI/BOOT/BOOTRISCV64.EFI
-	qemu-system-$(KARCH) -net none -M virt -cpu rv64 -device ramfb -device qemu-xhci -device usb-kbd -drive if=pflash,unit=0,format=raw,file=ovmf-code-$(KARCH).fd -device virtio-scsi-pci,id=scsi -device scsi-hd,drive=hd0 -drive id=hd0,file=fat:rw:boot
+	qemu-system-$(KARCH) \
+		-M virt \
+		-cpu rv64 \
+		-device ramfb \
+		-device qemu-xhci \
+		-device usb-kbd \
+		-drive if=pflash,unit=0,format=raw,file=ovmf/ovmf-code-$(KARCH).fd,readonly=on \
+		-drive if=pflash,unit=1,format=raw,file=ovmf/ovmf-vars-$(KARCH).fd \
+		-device virtio-scsi-pci,id=scsi \
+		-device scsi-hd,drive=hd0 \
+		-drive id=hd0,file=fat:rw:boot \
+		$(QEMUFLAGS)
 else ifeq ($(KARCH),loongarch64)
 	cp bin-$(KARCH)/$(OUTPUT).efi boot/EFI/BOOT/BOOTLOONGARCH64.EFI
-	qemu-system-$(KARCH) -net none -M virt -cpu la464 -device ramfb -device qemu-xhci -device usb-kbd -bios ovmf-code-$(KARCH).fd -drive file=fat:rw:boot
+	qemu-system-$(KARCH) \
+		-M virt \
+		-cpu la464 \
+		-device ramfb \
+		-device qemu-xhci \
+		-device usb-kbd \
+		-drive if=pflash,unit=0,format=raw,file=ovmf/ovmf-code-$(KARCH).fd,readonly=on \
+		-drive if=pflash,unit=1,format=raw,file=ovmf/ovmf-vars-$(KARCH).fd \
+		-drive file=fat:rw:boot \
+		$(QEMUFLAGS)
 endif
 	rm -rf boot
 
@@ -256,4 +303,4 @@ clean:
 # Remove everything built and generated including downloaded dependencies.
 .PHONY: distclean
 distclean:
-	rm -rf bin-* obj-* freestanding-headers src/cc-runtime.c limine-efi ovmf*
+	rm -rf bin-* obj-* freestanding-headers src/cc-runtime.c limine-efi ovmf
