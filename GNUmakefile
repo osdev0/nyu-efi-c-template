@@ -261,6 +261,7 @@ else ifeq ($(KARCH),aarch64)
 		-device ramfb \
 		-device qemu-xhci \
 		-device usb-kbd \
+		-device usb-mouse \
 		-drive if=pflash,unit=0,format=raw,file=ovmf/ovmf-code-$(KARCH).fd,readonly=on \
 		-drive if=pflash,unit=1,format=raw,file=ovmf/ovmf-vars-$(KARCH).fd \
 		-drive file=fat:rw:boot \
@@ -273,6 +274,7 @@ else ifeq ($(KARCH),riscv64)
 		-device ramfb \
 		-device qemu-xhci \
 		-device usb-kbd \
+		-device usb-mouse \
 		-drive if=pflash,unit=0,format=raw,file=ovmf/ovmf-code-$(KARCH).fd,readonly=on \
 		-drive if=pflash,unit=1,format=raw,file=ovmf/ovmf-vars-$(KARCH).fd \
 		-device virtio-scsi-pci,id=scsi \
@@ -287,6 +289,7 @@ else ifeq ($(KARCH),loongarch64)
 		-device ramfb \
 		-device qemu-xhci \
 		-device usb-kbd \
+		-device usb-mouse \
 		-drive if=pflash,unit=0,format=raw,file=ovmf/ovmf-code-$(KARCH).fd,readonly=on \
 		-drive if=pflash,unit=1,format=raw,file=ovmf/ovmf-vars-$(KARCH).fd \
 		-drive file=fat:rw:boot \
