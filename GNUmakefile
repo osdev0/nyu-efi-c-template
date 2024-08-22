@@ -82,7 +82,6 @@ override KCFLAGS += \
 override KCPPFLAGS := \
     -I src \
     -I limine-efi/inc \
-    -I limine-efi/inc/$(KARCH) \
     $(KCPPFLAGS) \
     -isystem freestanding-headers \
     -MMD \
