@@ -7,52 +7,36 @@ MAKEFLAGS += -rR
 override OUTPUT := efi-template
 
 # Convenience macro to reliably declare user overridable variables.
-define DEFAULT_VAR =
-    ifeq ($(origin $1),default)
-        override $(1) := $(2)
-    endif
-    ifeq ($(origin $1),undefined)
-        override $(1) := $(2)
-    endif
-endef
+override USER_VARIABLE = $(if $(filter $(origin $(1)),default undefined),$(eval override $(1) := $(2)))
 
 # Target architecture to build for. Default to x86_64.
-override DEFAULT_KARCH := x86_64
-$(eval $(call DEFAULT_VAR,KARCH,$(DEFAULT_KARCH)))
+$(call USER_VARIABLE,KARCH,x86_64)
 
 # Default user QEMU flags. These are appended to the QEMU command calls.
-override DEFAULT_QEMUFLAGS := -m 2G
-$(eval $(call DEFAULT_VAR,QEMUFLAGS,$(DEFAULT_QEMUFLAGS)))
+$(call USER_VARIABLE,QEMUFLAGS,-m 2G)
 
 # User controllable C compiler command.
-override DEFAULT_KCC := clang
-$(eval $(call DEFAULT_VAR,KCC,$(DEFAULT_KCC)))
+$(call USER_VARIABLE,KCC,clang)
 
 # User controllable linker command.
-override DEFAULT_KLD := ld.lld
-$(eval $(call DEFAULT_VAR,KLD,$(DEFAULT_KLD)))
+$(call USER_VARIABLE,KLD,ld.lld)
 
 # User controllable objcopy command.
-override DEFAULT_KOBJCOPY := llvm-objcopy
-$(eval $(call DEFAULT_VAR,KOBJCOPY,$(DEFAULT_KOBJCOPY)))
+$(call USER_VARIABLE,KOBJCOPY,llvm-objcopy)
 
 # User controllable C flags.
-override DEFAULT_KCFLAGS := -g -O2 -pipe
-$(eval $(call DEFAULT_VAR,KCFLAGS,$(DEFAULT_KCFLAGS)))
+$(call USER_VARIABLE,KCFLAGS,-g -O2 -pipe)
 
 # User controllable C preprocessor flags. We set none by default.
-override DEFAULT_KCPPFLAGS :=
-$(eval $(call DEFAULT_VAR,KCPPFLAGS,$(DEFAULT_KCPPFLAGS)))
+$(call USER_VARIABLE,KCPPFLAGS,)
 
 ifeq ($(KARCH),x86_64)
     # User controllable nasm flags.
-    override DEFAULT_KNASMFLAGS := -F dwarf -g
-    $(eval $(call DEFAULT_VAR,KNASMFLAGS,$(DEFAULT_KNASMFLAGS)))
+    $(call USER_VARIABLE,KNASMFLAGS,-F dwarf -g)
 endif
 
 # User controllable linker flags. We set none by default.
-override DEFAULT_KLDFLAGS :=
-$(eval $(call DEFAULT_VAR,KLDFLAGS,$(DEFAULT_KLDFLAGS)))
+$(call USER_VARIABLE,KLDFLAGS,)
 
 # Save user KCFLAGS and KCPPFLAGS before we append internal flags.
 override USER_KCFLAGS := $(KCFLAGS)
