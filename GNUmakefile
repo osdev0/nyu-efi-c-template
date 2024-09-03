@@ -12,6 +12,11 @@ override USER_VARIABLE = $(if $(filter $(origin $(1)),default undefined),$(eval 
 # Target architecture to build for. Default to x86_64.
 $(call USER_VARIABLE,KARCH,x86_64)
 
+# Check if the architecture is supported.
+ifeq ($(filter $(KARCH),aarch64 loongarch64 riscv64 x86_64),)
+    $(error Architecture $(KARCH) not supported)
+endif
+
 # Default user QEMU flags. These are appended to the QEMU command calls.
 $(call USER_VARIABLE,QEMUFLAGS,-m 2G)
 
@@ -90,7 +95,8 @@ ifeq ($(KARCH),x86_64)
         -m elf_x86_64
     override KNASMFLAGS += \
         -f elf64
-else ifeq ($(KARCH),aarch64)
+endif
+ifeq ($(KARCH),aarch64)
     ifeq ($(KCC),clang)
         override KCC += \
             -target aarch64-unknown-none
@@ -99,7 +105,8 @@ else ifeq ($(KARCH),aarch64)
         -mgeneral-regs-only
     override KLDFLAGS += \
         -m aarch64elf
-else ifeq ($(KARCH),riscv64)
+endif
+ifeq ($(KARCH),riscv64)
     ifeq ($(KCC),clang)
         override KCC += \
             -target riscv64-unknown-none
@@ -117,7 +124,8 @@ else ifeq ($(KARCH),riscv64)
     override KLDFLAGS += \
         -m elf64lriscv \
         --no-relax
-else ifeq ($(KARCH),loongarch64)
+endif
+ifeq ($(KARCH),loongarch64)
     ifeq ($(KCC),clang)
         override KCC += \
             -target loongarch64-unknown-none
@@ -128,8 +136,6 @@ else ifeq ($(KARCH),loongarch64)
     override KLDFLAGS += \
         -m elf64loongarch \
         --no-relax
-else
-    $(error Architecture $(KARCH) not supported)
 endif
 
 # Internal linker flags that should not be changed by the user.
@@ -233,7 +239,8 @@ ifeq ($(KARCH),x86_64)
 		-drive if=pflash,unit=1,format=raw,file=ovmf/ovmf-vars-$(KARCH).fd \
 		-drive file=fat:rw:boot \
 		$(QEMUFLAGS)
-else ifeq ($(KARCH),aarch64)
+endif
+ifeq ($(KARCH),aarch64)
 	cp bin-$(KARCH)/$(OUTPUT).efi boot/EFI/BOOT/BOOTAA64.EFI
 	qemu-system-$(KARCH) \
 		-M virt \
@@ -246,7 +253,8 @@ else ifeq ($(KARCH),aarch64)
 		-drive if=pflash,unit=1,format=raw,file=ovmf/ovmf-vars-$(KARCH).fd \
 		-drive file=fat:rw:boot \
 		$(QEMUFLAGS)
-else ifeq ($(KARCH),riscv64)
+endif
+ifeq ($(KARCH),riscv64)
 	cp bin-$(KARCH)/$(OUTPUT).efi boot/EFI/BOOT/BOOTRISCV64.EFI
 	qemu-system-$(KARCH) \
 		-M virt \
@@ -261,7 +269,8 @@ else ifeq ($(KARCH),riscv64)
 		-device scsi-hd,drive=hd0 \
 		-drive id=hd0,file=fat:rw:boot \
 		$(QEMUFLAGS)
-else ifeq ($(KARCH),loongarch64)
+endif
+ifeq ($(KARCH),loongarch64)
 	cp bin-$(KARCH)/$(OUTPUT).efi boot/EFI/BOOT/BOOTLOONGARCH64.EFI
 	qemu-system-$(KARCH) \
 		-M virt \
