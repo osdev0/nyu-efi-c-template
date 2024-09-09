@@ -1,5 +1,5 @@
 /boot
-/freestnd-c-hdrs
+/freestanding-headers
 /src/cc-runtime.c
 /limine-efi
 /ovmf

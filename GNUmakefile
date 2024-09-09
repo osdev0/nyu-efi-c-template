@@ -67,7 +67,7 @@ override KCPPFLAGS := \
     -I src \
     -I limine-efi/inc \
     $(KCPPFLAGS) \
-    -isystem freestnd-c-hdrs/$(KARCH)/include \
+    -isystem freestanding-headers \
     -MMD \
     -MP
 
@@ -161,7 +161,7 @@ endif
 override HEADER_DEPS := $(addprefix obj-$(KARCH)/,$(CFILES:.c=.c.d) $(ASFILES:.S=.S.d))
 
 # Ensure the dependencies have been obtained.
-override MISSING_DEPS := $(shell if ! test -d freestnd-c-hdrs || ! test -f src/cc-runtime.c || ! test -d limine-efi; then echo 1; fi)
+override MISSING_DEPS := $(shell if ! test -d freestanding-headers || ! test -f src/cc-runtime.c || ! test -d limine-efi; then echo 1; fi)
 ifeq ($(MISSING_DEPS),1)
     $(error Please run the ./get-deps script first)
 endif
@@ -181,7 +181,7 @@ limine-efi:
 		ARCH="$(KARCH)" \
 		CC="$(KCC)" \
 		CFLAGS="$(USER_KCFLAGS) -nostdinc" \
-		CPPFLAGS="$(USER_KCPPFLAGS) -isystem ../../freestnd-c-hdrs/$(KARCH)/include"
+		CPPFLAGS="$(USER_KCPPFLAGS) -isystem ../../freestanding-headers"
 
 # Rule to convert the final ELF executable to a .EFI PE executable.
 bin-$(KARCH)/$(OUTPUT).efi: bin-$(KARCH)/$(OUTPUT) GNUmakefile
@@ -299,4 +299,4 @@ clean:
 # Remove everything built and generated including downloaded dependencies.
 .PHONY: distclean
 distclean:
-	rm -rf bin-* obj-* freestnd-c-hdrs src/cc-runtime.c limine-efi ovmf
+	rm -rf bin-* obj-* freestanding-headers src/cc-runtime.c limine-efi ovmf
