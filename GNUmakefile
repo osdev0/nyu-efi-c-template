@@ -43,6 +43,11 @@ endif
 # User controllable linker flags. We set none by default.
 $(call USER_VARIABLE,KLDFLAGS,)
 
+# Ensure the dependencies have been obtained.
+ifeq ($(shell ( ! test -d freestanding-headers || ! test -f src/cc-runtime.c || ! test -d limine-efi ) && echo 1),1)
+    $(error Please run the ./get-deps script first)
+endif
+
 # Save user KCFLAGS and KCPPFLAGS before we append internal flags.
 override USER_KCFLAGS := $(KCFLAGS)
 override USER_KCPPFLAGS := $(KCPPFLAGS)
@@ -159,12 +164,6 @@ ifeq ($(KARCH),x86_64)
 override OBJ += $(addprefix obj-$(KARCH)/,$(NASMFILES:.asm=.asm.o))
 endif
 override HEADER_DEPS := $(addprefix obj-$(KARCH)/,$(CFILES:.c=.c.d) $(ASFILES:.S=.S.d))
-
-# Ensure the dependencies have been obtained.
-override MISSING_DEPS := $(shell if ! test -d freestanding-headers || ! test -f src/cc-runtime.c || ! test -d limine-efi; then echo 1; fi)
-ifeq ($(MISSING_DEPS),1)
-    $(error Please run the ./get-deps script first)
-endif
 
 # Default target.
 .PHONY: all
