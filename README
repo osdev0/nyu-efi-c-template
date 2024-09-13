@@ -1,9 +1,9 @@
-limine-efi C template
-=====================
+Nyu-EFI C template
+==================
 
-This is a simple C "hello world" program template using limine-efi.
-For information about limine-efi, see:
-https://github.com/limine-bootloader/limine-efi
+This is a simple C "hello world" program template using Nyu-EFI.
+For information about Nyu-EFI, see:
+https://github.com/osdev0/nyu-efi
 
 Works with clang and GCC, no need for any specialised toolchain or set up.
 Just type "make run" to build and run the hello world program in QEMU.

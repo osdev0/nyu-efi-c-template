@@ -44,7 +44,7 @@ endif
 $(call USER_VARIABLE,KLDFLAGS,)
 
 # Ensure the dependencies have been obtained.
-ifeq ($(shell ( ! test -d freestnd-c-hdrs-0bsd || ! test -f src/cc-runtime.c || ! test -d limine-efi ) && echo 1),1)
+ifeq ($(shell ( ! test -d freestnd-c-hdrs-0bsd || ! test -f src/cc-runtime.c || ! test -d nyu-efi ) && echo 1),1)
     $(error Please run the ./get-deps script first)
 endif
 
@@ -70,7 +70,7 @@ override KCFLAGS += \
 # Internal C preprocessor flags that should not be changed by the user.
 override KCPPFLAGS := \
     -I src \
-    -I limine-efi/inc \
+    -I nyu-efi/inc \
     $(KCPPFLAGS) \
     -isystem freestnd-c-hdrs-0bsd \
     -MMD \
@@ -150,7 +150,7 @@ override KLDFLAGS += \
     -z text \
     -z max-page-size=0x1000 \
     -gc-sections \
-    -T limine-efi/src/elf_$(KARCH)_efi.lds
+    -T nyu-efi/src/elf_$(KARCH)_efi.lds
 
 # Use "find" to glob all *.c, *.S, and *.asm files in the tree and obtain the
 # object and header dependency file names.
@@ -169,14 +169,14 @@ override HEADER_DEPS := $(addprefix obj-$(KARCH)/,$(CFILES:.c=.c.d) $(ASFILES:.S
 .PHONY: all
 all: bin-$(KARCH)/$(OUTPUT).efi
 
-# Rules to build the limine-efi objects we need.
-limine-efi/src/crt0-efi-$(KARCH).S.o: limine-efi
+# Rules to build the nyu-efi objects we need.
+nyu-efi/src/crt0-efi-$(KARCH).S.o: nyu-efi
 
-limine-efi/src/reloc_$(KARCH).c.o: limine-efi
+nyu-efi/src/reloc_$(KARCH).c.o: nyu-efi
 
-.PHONY: limine-efi
-limine-efi:
-	$(MAKE) -C limine-efi/src -f limine-efi.mk \
+.PHONY: nyu-efi
+nyu-efi:
+	$(MAKE) -C nyu-efi/src -f nyu-efi.mk \
 		ARCH="$(KARCH)" \
 		CC="$(KCC)" \
 		CFLAGS="$(USER_KCFLAGS) -nostdinc" \
@@ -189,9 +189,9 @@ bin-$(KARCH)/$(OUTPUT).efi: bin-$(KARCH)/$(OUTPUT) GNUmakefile
 	dd if=/dev/zero of=$@ bs=4096 count=0 seek=$$(( ($$(wc -c < $@) + 4095) / 4096 )) 2>/dev/null
 
 # Link rules for the final executable.
-bin-$(KARCH)/$(OUTPUT): GNUmakefile limine-efi/src/elf_$(KARCH)_efi.lds limine-efi/src/crt0-efi-$(KARCH).S.o limine-efi/src/reloc_$(KARCH).c.o $(OBJ)
+bin-$(KARCH)/$(OUTPUT): GNUmakefile nyu-efi/src/elf_$(KARCH)_efi.lds nyu-efi/src/crt0-efi-$(KARCH).S.o nyu-efi/src/reloc_$(KARCH).c.o $(OBJ)
 	mkdir -p "$$(dirname $@)"
-	$(KLD) limine-efi/src/crt0-efi-$(KARCH).S.o limine-efi/src/reloc_$(KARCH).c.o $(OBJ) $(KLDFLAGS) -o $@
+	$(KLD) nyu-efi/src/crt0-efi-$(KARCH).S.o nyu-efi/src/reloc_$(KARCH).c.o $(OBJ) $(KLDFLAGS) -o $@
 
 # Include header dependencies.
 -include $(HEADER_DEPS)
@@ -290,10 +290,10 @@ endif
 # Remove object files and the final executable.
 .PHONY: clean
 clean:
-	$(MAKE) -C limine-efi/src -f limine-efi.mk ARCH="$(KARCH)" clean
+	$(MAKE) -C nyu-efi/src -f nyu-efi.mk ARCH="$(KARCH)" clean
 	rm -rf bin-$(KARCH) obj-$(KARCH)
 
 # Remove everything built and generated including downloaded dependencies.
 .PHONY: distclean
 distclean:
-	rm -rf bin-* obj-* freestnd-c-hdrs-0bsd src/cc-runtime.c limine-efi ovmf
+	rm -rf bin-* obj-* freestnd-c-hdrs-0bsd src/cc-runtime.c nyu-efi ovmf
