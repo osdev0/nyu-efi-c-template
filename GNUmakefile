@@ -71,8 +71,8 @@ override KCFLAGS += \
 override KCPPFLAGS := \
     -I src \
     -I nyu-efi/inc \
-    $(KCPPFLAGS) \
     -isystem freestnd-c-hdrs-0bsd \
+    $(KCPPFLAGS) \
     -MMD \
     -MP
 
