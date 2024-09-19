@@ -21,13 +21,13 @@ endif
 $(call USER_VARIABLE,QEMUFLAGS,-m 2G)
 
 # User controllable C compiler command.
-$(call USER_VARIABLE,KCC,clang)
+$(call USER_VARIABLE,KCC,cc)
 
 # User controllable linker command.
-$(call USER_VARIABLE,KLD,ld.lld)
+$(call USER_VARIABLE,KLD,ld)
 
 # User controllable objcopy command.
-$(call USER_VARIABLE,KOBJCOPY,llvm-objcopy)
+$(call USER_VARIABLE,KOBJCOPY,objcopy)
 
 # User controllable C flags.
 $(call USER_VARIABLE,KCFLAGS,-g -O2 -pipe)
@@ -44,9 +44,12 @@ endif
 $(call USER_VARIABLE,KLDFLAGS,)
 
 # Ensure the dependencies have been obtained.
-ifeq ($(shell ( ! test -d freestnd-c-hdrs-0bsd || ! test -f src/cc-runtime.c || ! test -d nyu-efi ) && echo 1),1)
+ifeq ($(shell ( ! test -d freestnd-c-hdrs-0bsd || ! test -f src/cc-runtime.c || ! test -d nyu-efi ); echo $$?),0)
     $(error Please run the ./get-deps script first)
 endif
+
+# Check if KCC is Clang.
+override KCC_IS_CLANG := $(shell ! $(KCC) --version | grep 'clang' >/dev/null 2>&1; echo $$?)
 
 # Save user KCFLAGS and KCPPFLAGS before we append internal flags.
 override USER_KCFLAGS := $(KCFLAGS)
@@ -84,7 +87,7 @@ endif
 
 # Architecture specific internal flags.
 ifeq ($(KARCH),x86_64)
-    ifeq ($(KCC),clang)
+    ifeq ($(KCC_IS_CLANG),1)
         override KCC += \
             -target x86_64-unknown-none
     endif
@@ -102,7 +105,7 @@ ifeq ($(KARCH),x86_64)
         -f elf64
 endif
 ifeq ($(KARCH),aarch64)
-    ifeq ($(KCC),clang)
+    ifeq ($(KCC_IS_CLANG),1)
         override KCC += \
             -target aarch64-unknown-none
     endif
@@ -112,16 +115,14 @@ ifeq ($(KARCH),aarch64)
         -m aarch64elf
 endif
 ifeq ($(KARCH),riscv64)
-    ifeq ($(KCC),clang)
+    ifeq ($(KCC_IS_CLANG),1)
         override KCC += \
             -target riscv64-unknown-none
-    endif
-    ifeq ($(shell $(KCC) --version | grep -i 'clang'),)
-        override KCFLAGS += \
-            -march=rv64imac_zicsr_zifencei
-    else
         override KCFLAGS += \
             -march=rv64imac
+    else
+        override KCFLAGS += \
+            -march=rv64imac_zicsr_zifencei
     endif
     override KCFLAGS += \
         -mabi=lp64 \
@@ -131,7 +132,7 @@ ifeq ($(KARCH),riscv64)
         --no-relax
 endif
 ifeq ($(KARCH),loongarch64)
-    ifeq ($(KCC),clang)
+    ifeq ($(KCC_IS_CLANG),1)
         override KCC += \
             -target loongarch64-unknown-none
     endif
