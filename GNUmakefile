@@ -49,7 +49,7 @@ ifeq ($(shell ( ! test -d freestnd-c-hdrs-0bsd || ! test -f src/cc-runtime.c || 
 endif
 
 # Check if KCC is Clang.
-override KCC_IS_CLANG := $(shell ! $(KCC) --version | grep 'clang' >/dev/null 2>&1; echo $$?)
+override KCC_IS_CLANG := $(shell ! $(KCC) --version 2>/dev/null | grep 'clang' >/dev/null 2>&1; echo $$?)
 
 # Save user KCFLAGS and KCPPFLAGS before we append internal flags.
 override USER_KCFLAGS := $(KCFLAGS)
