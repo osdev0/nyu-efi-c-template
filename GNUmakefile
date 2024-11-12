@@ -10,53 +10,56 @@ override OUTPUT := efi-template
 override USER_VARIABLE = $(if $(filter $(origin $(1)),default undefined),$(eval override $(1) := $(2)))
 
 # Target architecture to build for. Default to x86_64.
-$(call USER_VARIABLE,KARCH,x86_64)
+$(call USER_VARIABLE,ARCH,x86_64)
 
 # Check if the architecture is supported.
-ifeq ($(filter $(KARCH),aarch64 loongarch64 riscv64 x86_64),)
-    $(error Architecture $(KARCH) not supported)
+ifeq ($(filter $(ARCH),aarch64 loongarch64 riscv64 x86_64),)
+    $(error Architecture $(ARCH) not supported)
 endif
 
 # Default user QEMU flags. These are appended to the QEMU command calls.
 $(call USER_VARIABLE,QEMUFLAGS,-m 2G)
 
 # User controllable C compiler command.
-$(call USER_VARIABLE,KCC,cc)
+$(call USER_VARIABLE,CC,cc)
+
+# User controllable archiver command.
+$(call USER_VARIABLE,AR,ar)
 
 # User controllable linker command.
-$(call USER_VARIABLE,KLD,ld)
+$(call USER_VARIABLE,LD,ld)
 
 # User controllable objcopy command.
-$(call USER_VARIABLE,KOBJCOPY,objcopy)
+$(call USER_VARIABLE,OBJCOPY,objcopy)
 
 # User controllable C flags.
-$(call USER_VARIABLE,KCFLAGS,-g -O2 -pipe)
+$(call USER_VARIABLE,CFLAGS,-g -O2 -pipe)
 
 # User controllable C preprocessor flags. We set none by default.
-$(call USER_VARIABLE,KCPPFLAGS,)
+$(call USER_VARIABLE,CPPFLAGS,)
 
-ifeq ($(KARCH),x86_64)
+ifeq ($(ARCH),x86_64)
     # User controllable nasm flags.
-    $(call USER_VARIABLE,KNASMFLAGS,-F dwarf -g)
+    $(call USER_VARIABLE,NASMFLAGS,-F dwarf -g)
 endif
 
 # User controllable linker flags. We set none by default.
-$(call USER_VARIABLE,KLDFLAGS,)
+$(call USER_VARIABLE,LDFLAGS,)
 
 # Ensure the dependencies have been obtained.
-ifeq ($(shell ( ! test -d freestnd-c-hdrs-0bsd || ! test -f src/cc-runtime.c || ! test -d nyu-efi ); echo $$?),0)
+ifeq ($(shell ( ! test -d freestnd-c-hdrs-0bsd || ! test -d cc-runtime || ! test -d nyu-efi ); echo $$?),0)
     $(error Please run the ./get-deps script first)
 endif
 
-# Check if KCC is Clang.
-override KCC_IS_CLANG := $(shell ! $(KCC) --version 2>/dev/null | grep 'clang' >/dev/null 2>&1; echo $$?)
+# Check if CC is Clang.
+override CC_IS_CLANG := $(shell ! $(CC) --version 2>/dev/null | grep 'clang' >/dev/null 2>&1; echo $$?)
 
-# Save user KCFLAGS and KCPPFLAGS before we append internal flags.
-override USER_KCFLAGS := $(KCFLAGS)
-override USER_KCPPFLAGS := $(KCPPFLAGS)
+# Save user CFLAGS and CPPFLAGS before we append internal flags.
+override USER_CFLAGS := $(CFLAGS)
+override USER_CPPFLAGS := $(CPPFLAGS)
 
 # Internal C flags that should not be changed by the user.
-override KCFLAGS += \
+override CFLAGS += \
     -Wall \
     -Wextra \
     -std=gnu11 \
@@ -71,27 +74,27 @@ override KCFLAGS += \
     -fdata-sections
 
 # Internal C preprocessor flags that should not be changed by the user.
-override KCPPFLAGS := \
+override CPPFLAGS := \
     -I src \
     -I nyu-efi/inc \
     -isystem freestnd-c-hdrs-0bsd \
-    $(KCPPFLAGS) \
+    $(CPPFLAGS) \
     -MMD \
     -MP
 
-ifeq ($(KARCH),x86_64)
+ifeq ($(ARCH),x86_64)
     # Internal nasm flags that should not be changed by the user.
-    override KNASMFLAGS += \
+    override NASMFLAGS += \
         -Wall
 endif
 
 # Architecture specific internal flags.
-ifeq ($(KARCH),x86_64)
-    ifeq ($(KCC_IS_CLANG),1)
-        override KCC += \
+ifeq ($(ARCH),x86_64)
+    ifeq ($(CC_IS_CLANG),1)
+        override CC += \
             -target x86_64-unknown-none
     endif
-    override KCFLAGS += \
+    override CFLAGS += \
         -m64 \
         -march=x86-64 \
         -mno-80387 \
@@ -99,190 +102,200 @@ ifeq ($(KARCH),x86_64)
         -mno-sse \
         -mno-sse2 \
         -mno-red-zone
-    override KLDFLAGS += \
+    override LDFLAGS += \
         -m elf_x86_64
-    override KNASMFLAGS += \
+    override NASMFLAGS += \
         -f elf64
 endif
-ifeq ($(KARCH),aarch64)
-    ifeq ($(KCC_IS_CLANG),1)
-        override KCC += \
+ifeq ($(ARCH),aarch64)
+    ifeq ($(CC_IS_CLANG),1)
+        override CC += \
             -target aarch64-unknown-none
     endif
-    override KCFLAGS += \
+    override CFLAGS += \
         -mgeneral-regs-only
-    override KLDFLAGS += \
+    override LDFLAGS += \
         -m aarch64elf
 endif
-ifeq ($(KARCH),riscv64)
-    ifeq ($(KCC_IS_CLANG),1)
-        override KCC += \
+ifeq ($(ARCH),riscv64)
+    ifeq ($(CC_IS_CLANG),1)
+        override CC += \
             -target riscv64-unknown-none
-        override KCFLAGS += \
+        override CFLAGS += \
             -march=rv64imac
     else
-        override KCFLAGS += \
+        override CFLAGS += \
             -march=rv64imac_zicsr_zifencei
     endif
-    override KCFLAGS += \
+    override CFLAGS += \
         -mabi=lp64 \
         -mno-relax
-    override KLDFLAGS += \
+    override LDFLAGS += \
         -m elf64lriscv \
         --no-relax
 endif
-ifeq ($(KARCH),loongarch64)
-    ifeq ($(KCC_IS_CLANG),1)
-        override KCC += \
+ifeq ($(ARCH),loongarch64)
+    ifeq ($(CC_IS_CLANG),1)
+        override CC += \
             -target loongarch64-unknown-none
     endif
-    override KCFLAGS += \
+    override CFLAGS += \
         -march=loongarch64 \
         -mabi=lp64s
-    override KLDFLAGS += \
+    override LDFLAGS += \
         -m elf64loongarch \
         --no-relax
 endif
 
 # Internal linker flags that should not be changed by the user.
-override KLDFLAGS += \
+override LDFLAGS += \
     -nostdlib \
     -pie \
     -z text \
     -z max-page-size=0x1000 \
     -gc-sections \
-    -T nyu-efi/src/elf_$(KARCH)_efi.lds
+    -T nyu-efi/src/elf_$(ARCH)_efi.lds
 
 # Use "find" to glob all *.c, *.S, and *.asm files in the tree and obtain the
 # object and header dependency file names.
 override CFILES := $(shell cd src && find -L * -type f -name '*.c')
 override ASFILES := $(shell cd src && find -L * -type f -name '*.S')
-ifeq ($(KARCH),x86_64)
+ifeq ($(ARCH),x86_64)
 override NASMFILES := $(shell cd src && find -L * -type f -name '*.asm')
 endif
-override OBJ := $(addprefix obj-$(KARCH)/,$(CFILES:.c=.c.o) $(ASFILES:.S=.S.o))
-ifeq ($(KARCH),x86_64)
-override OBJ += $(addprefix obj-$(KARCH)/,$(NASMFILES:.asm=.asm.o))
+override OBJ := $(addprefix obj-$(ARCH)/,$(CFILES:.c=.c.o) $(ASFILES:.S=.S.o))
+ifeq ($(ARCH),x86_64)
+override OBJ += $(addprefix obj-$(ARCH)/,$(NASMFILES:.asm=.asm.o))
 endif
-override HEADER_DEPS := $(addprefix obj-$(KARCH)/,$(CFILES:.c=.c.d) $(ASFILES:.S=.S.d))
+override HEADER_DEPS := $(addprefix obj-$(ARCH)/,$(CFILES:.c=.c.d) $(ASFILES:.S=.S.d))
 
 # Default target.
 .PHONY: all
-all: bin-$(KARCH)/$(OUTPUT).efi
+all: bin-$(ARCH)/$(OUTPUT).efi
 
 # Rules to build the nyu-efi objects we need.
-nyu-efi/src/crt0-efi-$(KARCH).S.o: nyu-efi
+nyu-efi/src/crt0-efi-$(ARCH).S.o: nyu-efi
 
-nyu-efi/src/reloc_$(KARCH).c.o: nyu-efi
+nyu-efi/src/reloc_$(ARCH).c.o: nyu-efi
 
 .PHONY: nyu-efi
 nyu-efi:
 	$(MAKE) -C nyu-efi/src -f nyu-efi.mk \
-		ARCH="$(KARCH)" \
-		CC="$(KCC)" \
-		CFLAGS="$(USER_KCFLAGS) -nostdinc" \
-		CPPFLAGS="$(USER_KCPPFLAGS) -isystem ../../freestnd-c-hdrs-0bsd"
+		ARCH="$(ARCH)" \
+		CC="$(CC)" \
+		CFLAGS="$(USER_CFLAGS) -nostdinc" \
+		CPPFLAGS="$(USER_CPPFLAGS) -isystem ../../freestnd-c-hdrs-0bsd"
+
+# Link rules for building the C compiler runtime.
+cc-runtime-$(ARCH)/cc-runtime.a: cc-runtime/*
+	rm -rf cc-runtime-$(ARCH)
+	cp -r cc-runtime cc-runtime-$(ARCH)
+	$(MAKE) -C cc-runtime-$(ARCH) -f cc-runtime.mk \
+		CC="$(CC)" \
+		AR="$(AR)" \
+		CFLAGS="$(CFLAGS)" \
+		CPPFLAGS='-isystem ../freestnd-c-hdrs-0bsd -DCC_RUNTIME_NO_FLOAT'
 
 # Rule to convert the final ELF executable to a .EFI PE executable.
-bin-$(KARCH)/$(OUTPUT).efi: bin-$(KARCH)/$(OUTPUT) GNUmakefile
+bin-$(ARCH)/$(OUTPUT).efi: bin-$(ARCH)/$(OUTPUT) GNUmakefile
 	mkdir -p "$$(dirname $@)"
-	$(KOBJCOPY) -O binary $< $@
+	$(OBJCOPY) -O binary $< $@
 	dd if=/dev/zero of=$@ bs=4096 count=0 seek=$$(( ($$(wc -c < $@) + 4095) / 4096 )) 2>/dev/null
 
 # Link rules for the final executable.
-bin-$(KARCH)/$(OUTPUT): GNUmakefile nyu-efi/src/elf_$(KARCH)_efi.lds nyu-efi/src/crt0-efi-$(KARCH).S.o nyu-efi/src/reloc_$(KARCH).c.o $(OBJ)
+bin-$(ARCH)/$(OUTPUT): GNUmakefile nyu-efi/src/elf_$(ARCH)_efi.lds nyu-efi/src/crt0-efi-$(ARCH).S.o nyu-efi/src/reloc_$(ARCH).c.o $(OBJ) cc-runtime-$(ARCH)/cc-runtime.a
 	mkdir -p "$$(dirname $@)"
-	$(KLD) nyu-efi/src/crt0-efi-$(KARCH).S.o nyu-efi/src/reloc_$(KARCH).c.o $(OBJ) $(KLDFLAGS) -o $@
+	$(LD) nyu-efi/src/crt0-efi-$(ARCH).S.o nyu-efi/src/reloc_$(ARCH).c.o $(OBJ) cc-runtime-$(ARCH)/cc-runtime.a $(LDFLAGS) -o $@
 
 # Include header dependencies.
 -include $(HEADER_DEPS)
 
 # Compilation rules for *.c files.
-obj-$(KARCH)/%.c.o: src/%.c GNUmakefile
+obj-$(ARCH)/%.c.o: src/%.c GNUmakefile
 	mkdir -p "$$(dirname $@)"
-	$(KCC) $(KCFLAGS) $(KCPPFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 # Compilation rules for *.S files.
-obj-$(KARCH)/%.S.o: src/%.S GNUmakefile
+obj-$(ARCH)/%.S.o: src/%.S GNUmakefile
 	mkdir -p "$$(dirname $@)"
-	$(KCC) $(KCFLAGS) $(KCPPFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
-ifeq ($(KARCH),x86_64)
+ifeq ($(ARCH),x86_64)
 # Compilation rules for *.asm (nasm) files.
-obj-$(KARCH)/%.asm.o: src/%.asm GNUmakefile
+obj-$(ARCH)/%.asm.o: src/%.asm GNUmakefile
 	mkdir -p "$$(dirname $@)"
-	nasm $(KNASMFLAGS) $< -o $@
+	nasm $(NASMFLAGS) $< -o $@
 endif
 
 # Rules to download the UEFI firmware per architecture for testing.
-ovmf/ovmf-code-$(KARCH).fd:
+ovmf/ovmf-code-$(ARCH).fd:
 	mkdir -p ovmf
-	curl -Lo $@ https://github.com/osdev0/edk2-ovmf-nightly/releases/latest/download/ovmf-code-$(KARCH).fd
-	case "$(KARCH)" in \
+	curl -Lo $@ https://github.com/osdev0/edk2-ovmf-nightly/releases/latest/download/ovmf-code-$(ARCH).fd
+	case "$(ARCH)" in \
 		aarch64) dd if=/dev/zero of=$@ bs=1 count=0 seek=67108864 2>/dev/null;; \
 		riscv64) dd if=/dev/zero of=$@ bs=1 count=0 seek=33554432 2>/dev/null;; \
 	esac
 
-ovmf/ovmf-vars-$(KARCH).fd:
+ovmf/ovmf-vars-$(ARCH).fd:
 	mkdir -p ovmf
-	curl -Lo $@ https://github.com/osdev0/edk2-ovmf-nightly/releases/latest/download/ovmf-vars-$(KARCH).fd
-	case "$(KARCH)" in \
+	curl -Lo $@ https://github.com/osdev0/edk2-ovmf-nightly/releases/latest/download/ovmf-vars-$(ARCH).fd
+	case "$(ARCH)" in \
 		aarch64) dd if=/dev/zero of=$@ bs=1 count=0 seek=67108864 2>/dev/null;; \
 		riscv64) dd if=/dev/zero of=$@ bs=1 count=0 seek=33554432 2>/dev/null;; \
 	esac
 
 # Rules for running our executable in QEMU.
 .PHONY: run
-run: all ovmf/ovmf-code-$(KARCH).fd ovmf/ovmf-vars-$(KARCH).fd
+run: all ovmf/ovmf-code-$(ARCH).fd ovmf/ovmf-vars-$(ARCH).fd
 	mkdir -p boot/EFI/BOOT
-ifeq ($(KARCH),x86_64)
-	cp bin-$(KARCH)/$(OUTPUT).efi boot/EFI/BOOT/BOOTX64.EFI
-	qemu-system-$(KARCH) \
+ifeq ($(ARCH),x86_64)
+	cp bin-$(ARCH)/$(OUTPUT).efi boot/EFI/BOOT/BOOTX64.EFI
+	qemu-system-$(ARCH) \
 		-M q35 \
-		-drive if=pflash,unit=0,format=raw,file=ovmf/ovmf-code-$(KARCH).fd,readonly=on \
-		-drive if=pflash,unit=1,format=raw,file=ovmf/ovmf-vars-$(KARCH).fd \
+		-drive if=pflash,unit=0,format=raw,file=ovmf/ovmf-code-$(ARCH).fd,readonly=on \
+		-drive if=pflash,unit=1,format=raw,file=ovmf/ovmf-vars-$(ARCH).fd \
 		-drive file=fat:rw:boot \
 		$(QEMUFLAGS)
 endif
-ifeq ($(KARCH),aarch64)
-	cp bin-$(KARCH)/$(OUTPUT).efi boot/EFI/BOOT/BOOTAA64.EFI
-	qemu-system-$(KARCH) \
+ifeq ($(ARCH),aarch64)
+	cp bin-$(ARCH)/$(OUTPUT).efi boot/EFI/BOOT/BOOTAA64.EFI
+	qemu-system-$(ARCH) \
 		-M virt \
 		-cpu cortex-a72 \
 		-device ramfb \
 		-device qemu-xhci \
 		-device usb-kbd \
 		-device usb-mouse \
-		-drive if=pflash,unit=0,format=raw,file=ovmf/ovmf-code-$(KARCH).fd,readonly=on \
-		-drive if=pflash,unit=1,format=raw,file=ovmf/ovmf-vars-$(KARCH).fd \
+		-drive if=pflash,unit=0,format=raw,file=ovmf/ovmf-code-$(ARCH).fd,readonly=on \
+		-drive if=pflash,unit=1,format=raw,file=ovmf/ovmf-vars-$(ARCH).fd \
 		-drive file=fat:rw:boot \
 		$(QEMUFLAGS)
 endif
-ifeq ($(KARCH),riscv64)
-	cp bin-$(KARCH)/$(OUTPUT).efi boot/EFI/BOOT/BOOTRISCV64.EFI
-	qemu-system-$(KARCH) \
+ifeq ($(ARCH),riscv64)
+	cp bin-$(ARCH)/$(OUTPUT).efi boot/EFI/BOOT/BOOTRISCV64.EFI
+	qemu-system-$(ARCH) \
 		-M virt \
 		-cpu rv64 \
 		-device ramfb \
 		-device qemu-xhci \
 		-device usb-kbd \
 		-device usb-mouse \
-		-drive if=pflash,unit=0,format=raw,file=ovmf/ovmf-code-$(KARCH).fd,readonly=on \
-		-drive if=pflash,unit=1,format=raw,file=ovmf/ovmf-vars-$(KARCH).fd \
+		-drive if=pflash,unit=0,format=raw,file=ovmf/ovmf-code-$(ARCH).fd,readonly=on \
+		-drive if=pflash,unit=1,format=raw,file=ovmf/ovmf-vars-$(ARCH).fd \
 		-drive file=fat:rw:boot \
 		$(QEMUFLAGS)
 endif
-ifeq ($(KARCH),loongarch64)
-	cp bin-$(KARCH)/$(OUTPUT).efi boot/EFI/BOOT/BOOTLOONGARCH64.EFI
-	qemu-system-$(KARCH) \
+ifeq ($(ARCH),loongarch64)
+	cp bin-$(ARCH)/$(OUTPUT).efi boot/EFI/BOOT/BOOTLOONGARCH64.EFI
+	qemu-system-$(ARCH) \
 		-M virt \
 		-cpu la464 \
 		-device ramfb \
 		-device qemu-xhci \
 		-device usb-kbd \
 		-device usb-mouse \
-		-drive if=pflash,unit=0,format=raw,file=ovmf/ovmf-code-$(KARCH).fd,readonly=on \
-		-drive if=pflash,unit=1,format=raw,file=ovmf/ovmf-vars-$(KARCH).fd \
+		-drive if=pflash,unit=0,format=raw,file=ovmf/ovmf-code-$(ARCH).fd,readonly=on \
+		-drive if=pflash,unit=1,format=raw,file=ovmf/ovmf-vars-$(ARCH).fd \
 		-drive file=fat:rw:boot \
 		$(QEMUFLAGS)
 endif
@@ -291,10 +304,10 @@ endif
 # Remove object files and the final executable.
 .PHONY: clean
 clean:
-	$(MAKE) -C nyu-efi/src -f nyu-efi.mk ARCH="$(KARCH)" clean
-	rm -rf bin-$(KARCH) obj-$(KARCH)
+	$(MAKE) -C nyu-efi/src -f nyu-efi.mk ARCH="$(ARCH)" clean
+	rm -rf bin-$(ARCH) obj-$(ARCH) cc-runtime-$(ARCH)
 
 # Remove everything built and generated including downloaded dependencies.
 .PHONY: distclean
 distclean:
-	rm -rf bin-* obj-* freestnd-c-hdrs-0bsd src/cc-runtime.c nyu-efi ovmf
+	rm -rf bin-* obj-* freestnd-c-hdrs-0bsd cc-runtime* nyu-efi ovmf

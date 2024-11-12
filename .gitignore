@@ -1,6 +1,6 @@
 /boot
 /freestnd-c-hdrs-0bsd
-/src/cc-runtime.c
+/cc-runtime*
 /nyu-efi
 /ovmf
 /bin-*
