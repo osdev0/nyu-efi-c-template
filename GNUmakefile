@@ -6,11 +6,8 @@ MAKEFLAGS += -rR
 # Change as needed.
 override OUTPUT := efi-template
 
-# Convenience macro to reliably declare user overridable variables.
-override USER_VARIABLE = $(if $(filter $(origin $(1)),default undefined),$(eval override $(1) := $(2)))
-
 # Target architecture to build for. Default to x86_64.
-$(call USER_VARIABLE,ARCH,x86_64)
+ARCH := x86_64
 
 # Check if the architecture is supported.
 ifeq ($(filter $(ARCH),aarch64 loongarch64 riscv64 x86_64),)
@@ -18,33 +15,33 @@ ifeq ($(filter $(ARCH),aarch64 loongarch64 riscv64 x86_64),)
 endif
 
 # Default user QEMU flags. These are appended to the QEMU command calls.
-$(call USER_VARIABLE,QEMUFLAGS,-m 2G)
+QEMUFLAGS := -m 2G
 
 # User controllable C compiler command.
-$(call USER_VARIABLE,CC,cc)
+CC := cc
 
 # User controllable archiver command.
-$(call USER_VARIABLE,AR,ar)
+AR := ar
 
 # User controllable linker command.
-$(call USER_VARIABLE,LD,ld)
+LD := ld
 
 # User controllable objcopy command.
-$(call USER_VARIABLE,OBJCOPY,objcopy)
+OBJCOPY := objcopy
 
 # User controllable C flags.
-$(call USER_VARIABLE,CFLAGS,-g -O2 -pipe)
+CFLAGS := -g -O2 -pipe
 
 # User controllable C preprocessor flags. We set none by default.
-$(call USER_VARIABLE,CPPFLAGS,)
+CPPFLAGS :=
 
 ifeq ($(ARCH),x86_64)
     # User controllable nasm flags.
-    $(call USER_VARIABLE,NASMFLAGS,-F dwarf -g)
+    NASMFLAGS := -F dwarf -g
 endif
 
 # User controllable linker flags. We set none by default.
-$(call USER_VARIABLE,LDFLAGS,)
+LDFLAGS :=
 
 # Ensure the dependencies have been obtained.
 ifeq ($(shell ( ! test -d freestnd-c-hdrs-0bsd || ! test -d cc-runtime || ! test -d nyu-efi ); echo $$?),0)
@@ -158,10 +155,10 @@ override LDFLAGS += \
 
 # Use "find" to glob all *.c, *.S, and *.asm files in the tree and obtain the
 # object and header dependency file names.
-override CFILES := $(shell cd src && find -L * -type f -name '*.c')
-override ASFILES := $(shell cd src && find -L * -type f -name '*.S')
+override CFILES := $(shell cd src && find -L * -type f -name '*.c' | LC_ALL=C sort)
+override ASFILES := $(shell cd src && find -L * -type f -name '*.S' | LC_ALL=C sort)
 ifeq ($(ARCH),x86_64)
-override NASMFILES := $(shell cd src && find -L * -type f -name '*.asm')
+override NASMFILES := $(shell cd src && find -L * -type f -name '*.asm' | LC_ALL=C sort)
 endif
 override OBJ := $(addprefix obj-$(ARCH)/,$(CFILES:.c=.c.o) $(ASFILES:.S=.S.o))
 ifeq ($(ARCH),x86_64)
