@@ -23,9 +23,6 @@ CC := cc
 # User controllable archiver command.
 AR := ar
 
-# User controllable linker command.
-LD := ld
-
 # User controllable objcopy command.
 OBJCOPY := objcopy
 
@@ -65,7 +62,6 @@ override CFLAGS += \
     -fno-stack-protector \
     -fno-stack-check \
     -fshort-wchar \
-    -fno-lto \
     -fPIE \
     -ffunction-sections \
     -fdata-sections
@@ -100,7 +96,7 @@ ifeq ($(ARCH),x86_64)
         -mno-sse2 \
         -mno-red-zone
     override LDFLAGS += \
-        -m elf_x86_64
+        -Wl,-m,elf_x86_64
     override NASMFLAGS += \
         -f elf64
 endif
@@ -112,7 +108,7 @@ ifeq ($(ARCH),aarch64)
     override CFLAGS += \
         -mgeneral-regs-only
     override LDFLAGS += \
-        -m aarch64elf
+        -Wl,-m,aarch64elf
 endif
 ifeq ($(ARCH),riscv64)
     ifeq ($(CC_IS_CLANG),1)
@@ -128,8 +124,8 @@ ifeq ($(ARCH),riscv64)
         -mabi=lp64 \
         -mno-relax
     override LDFLAGS += \
-        -m elf64lriscv \
-        --no-relax
+        -Wl,-m,elf64lriscv \
+        -Wl,--no-relax
 endif
 ifeq ($(ARCH),loongarch64)
     ifeq ($(CC_IS_CLANG),1)
@@ -140,17 +136,18 @@ ifeq ($(ARCH),loongarch64)
         -march=loongarch64 \
         -mabi=lp64s
     override LDFLAGS += \
-        -m elf64loongarch \
-        --no-relax
+        -Wl,-m,elf64loongarch \
+        -Wl,--no-relax
 endif
 
 # Internal linker flags that should not be changed by the user.
 override LDFLAGS += \
+    -Wl,--build-id=none \
     -nostdlib \
     -pie \
     -z text \
     -z max-page-size=0x1000 \
-    -gc-sections \
+    -Wl,--gc-sections \
     -T nyu-efi/src/elf_$(ARCH)_efi.lds
 
 # Use "find" to glob all *.c, *.S, and *.asm files in the tree and obtain the
@@ -206,7 +203,7 @@ bin-$(ARCH)/$(OUTPUT).efi: bin-$(ARCH)/$(OUTPUT) GNUmakefile
 # Link rules for the final executable.
 bin-$(ARCH)/$(OUTPUT): GNUmakefile nyu-efi/src/elf_$(ARCH)_efi.lds nyu-efi/src/crt0-efi-$(ARCH).S.o nyu-efi/src/reloc_$(ARCH).c.o $(OBJ) cc-runtime-$(ARCH)/cc-runtime.a
 	mkdir -p "$$(dirname $@)"
-	$(LD) nyu-efi/src/crt0-efi-$(ARCH).S.o nyu-efi/src/reloc_$(ARCH).c.o $(OBJ) cc-runtime-$(ARCH)/cc-runtime.a $(LDFLAGS) -o $@
+	$(CC) $(CFLAGS) $(LDFLAGS) nyu-efi/src/crt0-efi-$(ARCH).S.o nyu-efi/src/reloc_$(ARCH).c.o $(OBJ) cc-runtime-$(ARCH)/cc-runtime.a -o $@
 
 # Compilation rules for *.c files.
 obj-$(ARCH)/%.c.o: src/%.c GNUmakefile
